@@ -91,8 +91,8 @@
         // Set the background image depending on HDR support
         function setBackground() {
             const heroSection = document.querySelector('.hero');
-            const hdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/blame/main/BackgroundPic_HDR.avif';
-            const nonHdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/blame/main/BackgroundPic.avif';
+            const hdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/raw/main/BackgroundPic.avif';
+            const nonHdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/raw/main/BackgroundPic.avif';
     
             if (isHDRSupported()) {
                 heroSection.style.backgroundImage = `url('${hdrImage}')`;
