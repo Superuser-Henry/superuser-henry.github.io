@@ -57,13 +57,14 @@ header {
 }
 
 .nav-links a:hover {
-    color: #0071e3; /* Apple-like accent color */
+    color: #0071e3;
 }
 
 /* Hero Section */
 .hero {
     height: 100vh;
-    background: url('images/hero-background.jpg') center center/cover no-repeat;
+    background-size: cover;
+    background-position: center;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -71,6 +72,9 @@ header {
     padding: 0 20px;
 }
 
+/* JavaScript will dynamically set the background image for the hero section based on HDR support */
+
+/* Hero Content */
 .hero-content h1 {
     font-size: 3em;
     margin-bottom: 20px;
@@ -164,56 +168,6 @@ section {
 .project-item p {
     font-size: 1em;
     color: #666;
-}
-
-/* Contact Form */
-.contact form {
-    max-width: 600px;
-    margin: auto;
-    text-align: left;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 1em;
-    transition: border-color 0.3s;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    border-color: #0071e3;
-    outline: none;
-}
-
-.contact button {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    background-color: #0071e3;
-    color: #fff;
-    border: none;
-    border-radius: 25px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.contact button:hover {
-    background-color: #005bb5;
 }
 
 /* Footer */

@@ -75,5 +75,35 @@
             </div>
         </div>
     </footer>
+    <script>
+        // Function to check for HDR display support
+        function isHDRSupported() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!context) return false;
+    
+            const extension = context.getExtension('EXT_color_buffer_float') ||
+                              context.getExtension('WEBGL_color_buffer_float');
+    
+            return !!extension;
+        }
+    
+        // Set the background image depending on HDR support
+        function setBackground() {
+            const heroSection = document.querySelector('.hero');
+            const hdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/blame/main/BackgroundPic_HDR.avif';
+            const nonHdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/blame/main/BackgroundPic.avif';
+    
+            if (isHDRSupported()) {
+                heroSection.style.backgroundImage = `url('${hdrImage}')`;
+            } else {
+                heroSection.style.backgroundImage = `url('${nonHdrImage}')`;
+            }
+        }
+    
+        // Run the function to set the background when the page loads
+        document.addEventListener('DOMContentLoaded', setBackground);
+    </script>
+    
 </body>
 </html>
