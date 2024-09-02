@@ -11,7 +11,7 @@
     <!-- Header with Navigation -->
     <header>
         <nav class="navbar">
-            <div class="logo">🚴🎷</div> <!-- Bicycle and Saxophone emoji as the logo -->
+            <div class="logo">🚴🎷🔧</div> <!-- Bicycle and Saxophone emoji as the logo -->
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
                 <li><a href="#about">About</a></li>
@@ -34,13 +34,13 @@
         <div class="container">
             <h2>About Me</h2>
             <p>
-                Hey there! I’m Henry Huang, but you can call me Shenqiu if you’re feeling formal. I’m originally from Shanghai, China, but now I’m calling Dallas, TX, home while I work on my Bachelor’s in Electrical and Computer Engineering at SMU. I’am also minoring in Music – Saxophone Performance because, why not blend tech with some tunes, right?
+                Hey there! I’m Henry Huang, but you can call me Shenqiu if you’re feeling formal. I’m originally from Shanghai, China. YES!!! SHANGHAI!!! But now I’m calling Dallas, TX, working on my Bachelor’s in Electrical and Computer Engineering at SMU. I’am also minoring in Music – Saxophone Performance because, why not blend tech with some tunes, right?
                 <br><br>
                 I’m big into cycling—I did a lot of racing back in high school. There’s something about the freedom of hitting the open road, breathing in the fresh air under the woods, that just feels right. I’m also a huge fan of all things mechanical, whether it’s bike gears, bearings, or car parts. The craftsmanship and design that goes into these things fascinates me.
                 <br><br>
                 Besides tech and bikes, I’m all about music, with J-pop being my go-to jam. And being in Dallas, I’m still getting the hang of blending different cultures, which has been a cool part of my journey here in the States.
                 <br><br>
-                By the way, I'm also in the Mustang Band!!! This is the second year I'm in the marching band and I the atmosphere of the games and rehersals.
+                By the way, I'm also in the Mustang Band!!! This is the second year I'm in the marching band and I love the atmosphere of the games and rehersals.
                 <br><br>
                 So yeah, if you’re into tech, bikes, music, or just want to chat about the mix of cultures, hit me up. I’m always down to connect!
             </p>
@@ -81,7 +81,7 @@
                 <a href="https://www.linkedin.com/in/shenqiu-huang-aka-henry/">LinkedIn</a>
                 <a href="https://www.instagram.com/henryyyyh_ins?igsh=NmVvdnV2c25kOXRy&utm_source=qr">Instagram</a>
                 <a href="https://www.thingiverse.com/henryyyyhuang/designs">Thingiverse</a>
-                <a href="#">GitHub</a> <!-- You can update this with your actual GitHub link -->
+                <a href="https://github.com/Superuser-Henry">GitHub</a>
             </div>
         </div>
     </footer>
@@ -114,6 +114,23 @@
         // Run the function to set the background when the page loads
         document.addEventListener('DOMContentLoaded', setBackground);
     </script>
+    <script>
+        let lastScrollTop = 0;
+        const header = document.querySelector('header');
     
+        window.addEventListener('scroll', function() {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+            if (scrollTop > lastScrollTop) {
+                // Scrolling down, hide the navbar
+                header.classList.add('hidden');
+            } else {
+                // Scrolling up, show the navbar
+                header.classList.remove('hidden');
+            }
+    
+            lastScrollTop = scrollTop;
+        });
+    </script>
 </body>
 </html>
