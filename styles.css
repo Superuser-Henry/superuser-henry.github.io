@@ -191,6 +191,9 @@ footer p {
 .social-links a:hover {
     color: #0071e3;
 }
+.small-text {
+    font-size: 0.7em; /* Adjust the size as needed */
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
