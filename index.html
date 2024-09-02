@@ -3,101 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Henry's Personal Webpage</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #333;
-            color: white;
-            padding: 10px 0;
-            text-align: center;
-        }
-        nav {
-            margin: 20px 0;
-            text-align: center;
-        }
-        nav a {
-            margin: 0 15px;
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-        }
-        section {
-            padding: 20px;
-            max-width: 900px;
-            margin: 0 auto;
-            background-color: white;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2 {
-            color: #333;
-        }
-        footer {
-            text-align: center;
-            padding: 10px;
-            background-color: #333;
-            color: white;
-            margin-top: 20px;
-        }
-    </style>
+    <title>Your Name - Personal Website</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts for a clean, modern font -->
+    <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-
+    <!-- Header with Navigation -->
     <header>
-        <h1>Henry's Personal Webpage</h1>
+        <nav class="navbar">
+            <div class="logo">YourLogo</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
     </header>
 
-    <nav>
-        <a href="#about">About Me</a>
-        <a href="#skills">Skills</a>
-        <a href="#projects">Projects</a>
-        <a href="#contact">Contact</a>
-    </nav>
-
-    <section id="about">
-        <h2>About Me</h2>
-        <p>Hello! I'm Henry, a passionate programmer and musician. I have experience in digital integrated circuits, programming instruments, and more. I love creating innovative projects and sharing my work with others.</p>
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Welcome to My World</h1>
+            <p>I’m [Your Name], a [Your Profession]</p>
+            <a href="#about" class="cta-button">Learn More</a>
+        </div>
     </section>
 
-    <section id="skills">
-        <h2>Skills</h2>
-        <ul>
-            <li>Programming: Python, C++, Java</li>
-            <li>Web Development: HTML, CSS, JavaScript</li>
-            <li>Music: Alto Saxophone, Music Theory</li>
-            <li>3D Design: Fusion 360</li>
-        </ul>
+    <!-- About Section -->
+    <section class="about" id="about">
+        <div class="container">
+            <h2>About Me</h2>
+            <p>
+                [Provide a brief introduction about yourself. Highlight your skills, experiences, and what you’re passionate about.]
+            </p>
+        </div>
     </section>
 
-    <section id="projects">
-        <h2>Projects</h2>
-        <p>Here are a few projects I've worked on:</p>
-        <ul>
-            <li><a href="https://www.ieee.org" target="_blank">Digital Integrated Circuits Research</a> - Published in IEEE EEBDA 2023.</li>
-            <li><a href="https://www.thingiverse.com/thing:5531157" target="_blank">Bike Computer Mount</a> - A 3D design project open-sourced on Thingiverse.</li>
-        </ul>
+    <!-- Projects Section -->
+    <section class="projects" id="projects">
+        <div class="container">
+            <h2>My Projects</h2>
+            <div class="project-grid">
+                <div class="project-item">
+                    <img src="images/project1.jpg" alt="Project 1">
+                    <h3>Project One</h3>
+                    <p>A short description of Project One.</p>
+                </div>
+                <div class="project-item">
+                    <img src="images/project2.jpg" alt="Project 2">
+                    <h3>Project Two</h3>
+                    <p>A short description of Project Two.</p>
+                </div>
+                <div class="project-item">
+                    <img src="images/project3.jpg" alt="Project 3">
+                    <h3>Project Three</h3>
+                    <p>A short description of Project Three.</p>
+                </div>
+                <!-- Add more projects as needed -->
+            </div>
+        </div>
     </section>
 
-    <section id="contact">
-        <h2>Contact</h2>
-        <p>Feel free to reach out to me through email or social media:</p>
-        <ul>
-            <li>Email: henry@example.com</li>
-            <li>LinkedIn: <a href="https://www.linkedin.com" target="_blank">Henry's LinkedIn</a></li>
-            <li>GitHub: <a href="https://www.github.com" target="_blank">Henry's GitHub</a></li>
-        </ul>
+    <!-- Contact Section -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <h2>Contact Me</h2>
+            <form action="mailto:your.email@example.com" method="post" enctype="text/plain">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="cta-button">Send Message</button>
+            </form>
+        </div>
     </section>
 
+    <!-- Footer -->
     <footer>
-        <p>&copy; 2024 Henry's Personal Webpage. All rights reserved.</p>
+        <div class="container">
+            <p>&copy; 2024 Your Name. All rights reserved.</p>
+            <div class="social-links">
+                <a href="#">LinkedIn</a>
+                <a href="#">GitHub</a>
+                <a href="#">Twitter</a>
+                <!-- Add more social links as needed -->
+            </div>
+        </div>
     </footer>
-
 </body>
 </html>

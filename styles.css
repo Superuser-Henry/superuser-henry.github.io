@@ -1,0 +1,272 @@
+/* Reset default styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body Styles */
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #333;
+    line-height: 1.6;
+    background-color: #fff;
+}
+
+/* Link Styles */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Header and Navigation */
+header {
+    position: fixed;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.logo {
+    font-size: 1.5em;
+    font-weight: 600;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+}
+
+.nav-links li {
+    margin-left: 20px;
+}
+
+.nav-links a {
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: #0071e3; /* Apple-like accent color */
+}
+
+/* Hero Section */
+.hero {
+    height: 100vh;
+    background: url('images/hero-background.jpg') center center/cover no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.hero-content h1 {
+    font-size: 3em;
+    margin-bottom: 20px;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.hero-content p {
+    font-size: 1.5em;
+    margin-bottom: 30px;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+
+.cta-button {
+    display: inline-block;
+    padding: 12px 30px;
+    background-color: #0071e3;
+    color: #fff;
+    border-radius: 25px;
+    font-size: 1em;
+    transition: background-color 0.3s;
+}
+
+.cta-button:hover {
+    background-color: #005bb5;
+}
+
+/* Sections */
+section {
+    padding: 80px 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+}
+
+.about, .projects, .contact {
+    text-align: center;
+}
+
+.about h2, .projects h2, .contact h2 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.about h2::after, .projects h2::after, .contact h2::after {
+    content: '';
+    width: 60px;
+    height: 3px;
+    background-color: #0071e3;
+    display: block;
+    margin: 10px auto 0;
+}
+
+/* Projects Grid */
+.projects .project-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.project-item {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.project-item:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.project-item img {
+    max-width: 100%;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.project-item h3 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.project-item p {
+    font-size: 1em;
+    color: #666;
+}
+
+/* Contact Form */
+.contact form {
+    max-width: 600px;
+    margin: auto;
+    text-align: left;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #0071e3;
+    outline: none;
+}
+
+.contact button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #0071e3;
+    color: #fff;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.contact button:hover {
+    background-color: #005bb5;
+}
+
+/* Footer */
+footer {
+    background-color: #f5f5f5;
+    padding: 20px 0;
+    text-align: center;
+}
+
+footer p {
+    margin-bottom: 10px;
+    color: #666;
+}
+
+.social-links a {
+    margin: 0 10px;
+    color: #333;
+    transition: color 0.3s;
+}
+
+.social-links a:hover {
+    color: #0071e3;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+    }
+
+    .nav-links {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .nav-links li {
+        margin: 10px 0;
+    }
+
+    .hero-content h1 {
+        font-size: 2.5em;
+    }
+
+    .hero-content p {
+        font-size: 1.2em;
+    }
+
+    .projects .project-grid {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .project-item {
+        width: 100%;
+    }
+}
