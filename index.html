@@ -45,6 +45,43 @@
                 So yeah, if you’re into tech, bikes, music, or just want to chat about the mix of cultures, hit me up. I’m always down to connect!
             </p>
         </div>
+
+
+        <!-- Gallery Section -->
+        <section class="gallery" id="gallery">
+            <div class="container">
+                <div class="gallery-grid">
+                    <div class="gallery-item">
+                        <img src="images/photo1.jpg" alt="Gallery Image 1" class="gallery-img" onclick="openModal(this)">
+                    </div>
+                    <div class="gallery-item">
+                        <img src="images/photo2.jpg" alt="Gallery Image 2" class="gallery-img" onclick="openModal(this)">
+                    </div>
+                    <div class="gallery-item">
+                        <img src="images/photo3.jpg" alt="Gallery Image 3" class="gallery-img" onclick="openModal(this)">
+                    </div>
+                    <div class="gallery-item">
+                        <img src="images/photo4.jpg" alt="Gallery Image 4" class="gallery-img" onclick="openModal(this)">
+                    </div>
+                    <div class="gallery-item">
+                        <img src="images/photo5.jpg" alt="Gallery Image 5" class="gallery-img" onclick="openModal(this)">
+                    </div>
+                    <div class="gallery-item">
+                        <img src="images/photo6.jpg" alt="Gallery Image 6" class="gallery-img" onclick="openModal(this)">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modal for Full Image View -->
+        <div id="modal" class="modal">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <img class="modal-content" id="full-img">
+            <div id="caption"></div>
+            <button class="return-btn" onclick="closeModal()">Return</button>
+        </div>
+
+
     </section>
 
     <!-- Projects Section -->
@@ -132,5 +169,24 @@
             lastScrollTop = scrollTop;
         });
     </script>
+    <script>
+        // Function to open the modal
+        function openModal(imgElement) {
+            const modal = document.getElementById("modal");
+            const modalImg = document.getElementById("full-img");
+            const captionText = document.getElementById("caption");
+    
+            modal.style.display = "block";
+            modalImg.src = imgElement.src;
+            captionText.innerHTML = imgElement.alt;
+        }
+    
+        // Function to close the modal
+        function closeModal() {
+            const modal = document.getElementById("modal");
+            modal.style.display = "none";
+        }
+    </script>
+    
 </body>
 </html>
