@@ -338,8 +338,8 @@ footer p {
     display: block;
     margin: 20px auto;
     padding: 10px 20px;
-    background-color: #0071e3;
-    color: white;
+    background-color: #7aafe4;
+    color: rgb(214, 214, 214);
     border: none;
     border-radius: 5px;
     font-size: 1.2em;
@@ -347,5 +347,5 @@ footer p {
 }
 
 .return-btn:hover {
-    background-color: #005bb5;
+    background-color: #4f80b1;
 }
