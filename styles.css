@@ -280,13 +280,19 @@ footer p {
 }
 
 .gallery-item {
+    position: relative;
     overflow: hidden;
+    padding-top: 75%; /* 4:3 aspect ratio (height is 75% of the width) */
     border-radius: 10px;
 }
 
 .gallery-img {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover; /* Ensures the image covers the container, maintaining the aspect ratio */
     cursor: pointer;
     transition: transform 0.3s ease;
 }
