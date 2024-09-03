@@ -55,7 +55,7 @@
                         <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/ECU.JPEG?raw=true" alt="Repairing Friend's MIATA ECU" class="gallery-img" onclick="openModal(this)">
                     </div>
                     <div class="gallery-item">
-                        <img src="images/photo2.jpg" alt="Gallery Image 2" class="gallery-img" onclick="openModal(this)">
+                        <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/Salad.JPEG?raw=true" alt="Salad" class="gallery-img" onclick="openModal(this)">
                     </div>
                     <div class="gallery-item">
                         <img src="images/photo3.jpg" alt="Gallery Image 3" class="gallery-img" onclick="openModal(this)">
@@ -187,6 +187,18 @@
             modal.style.display = "none";
         }
     </script>
-    
+    <script>
+        document.querySelector('.cta-button').addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent the default anchor behavior
+            const targetId = this.getAttribute('href');
+            const targetSection = document.querySelector(targetId);
+
+            // Scroll smoothly to the target section
+            window.scrollTo({
+                top: targetSection.offsetTop,
+                behavior: 'smooth'
+            });
+        });
+    </script>
 </body>
 </html>
