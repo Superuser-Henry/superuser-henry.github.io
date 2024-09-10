@@ -176,50 +176,27 @@
     
             const extension = context.getExtension('EXT_color_buffer_float') ||
                               context.getExtension('WEBGL_color_buffer_float');
-    
             return !!extension;
         }
     
         // Set the background image depending on HDR support
         function setBackground() {
             const heroSection = document.querySelector('.hero');
+            if (!heroSection) return; // Ensure hero section exists
+    
             const hdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/raw/main/BackgroundPic.avif';
             const nonHdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/raw/main/BackgroundPic.avif';
     
-            if (isHDRSupported()) {
-                heroSection.style.backgroundImage = `url('${hdrImage}')`;
-            } else {
-                heroSection.style.backgroundImage = `url('${nonHdrImage}')`;
-            }
+            heroSection.style.backgroundImage = `url('${isHDRSupported() ? hdrImage : nonHdrImage}')`;
         }
     
-        // Run the function to set the background when the page loads
-        document.addEventListener('DOMContentLoaded', setBackground);
-    </script>
-    <script>
-        let lastScrollTop = 0;
-        const header = document.querySelector('header');
-    
-        window.addEventListener('scroll', function() {
-            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
-            if (scrollTop > lastScrollTop) {
-                // Scrolling down, hide the navbar
-                header.classList.add('hidden');
-            } else {
-                // Scrolling up, show the navbar
-                header.classList.remove('hidden');
-            }
-    
-            lastScrollTop = scrollTop;
-        });
-    </script>
-    <script>
         // Function to open the modal
         function openModal(imgElement) {
             const modal = document.getElementById("modal");
             const modalImg = document.getElementById("full-img");
             const captionText = document.getElementById("caption");
+    
+            if (!modal || !modalImg || !captionText) return;  // Ensure modal elements exist
     
             modal.style.display = "block";
             modalImg.src = imgElement.src;
@@ -229,21 +206,49 @@
         // Function to close the modal
         function closeModal() {
             const modal = document.getElementById("modal");
-            modal.style.display = "none";
+            if (modal) modal.style.display = "none";
         }
-    </script>
-    <script>
-        document.querySelector('.cta-button').addEventListener('click', function(e) {
-            e.preventDefault(); // Prevent the default anchor behavior
-            const targetId = this.getAttribute('href');
-            const targetSection = document.querySelector(targetId);
-
-            // Scroll smoothly to the target section
-            window.scrollTo({
-                top: targetSection.offsetTop,
-                behavior: 'smooth'
-            });
+    
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set background based on HDR support
+            setBackground();
+    
+            // Handle scroll event for navbar visibility
+            const header = document.querySelector('header');
+            if (header) {
+                let lastScrollTop = 0;
+    
+                window.addEventListener('scroll', function() {
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+                    if (scrollTop > lastScrollTop) {
+                        header.classList.add('hidden');  // Scrolling down, hide the navbar
+                    } else {
+                        header.classList.remove('hidden');  // Scrolling up, show the navbar
+                    }
+    
+                    lastScrollTop = scrollTop;
+                });
+            }
+    
+            // Handle the smooth scroll behavior for CTA button
+            const ctaButton = document.querySelector('.cta-button');
+            if (ctaButton) {
+                ctaButton.addEventListener('click', function(e) {
+                    e.preventDefault();  // Prevent default anchor behavior
+    
+                    const targetId = this.getAttribute('href');
+                    const targetSection = document.querySelector(targetId);
+                    if (targetSection) {
+                        // Scroll smoothly to the target section
+                        window.scrollTo({
+                            top: targetSection.offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            }
         });
-    </script>
+    </script>    
 </body>
 </html>
