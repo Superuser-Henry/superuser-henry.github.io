@@ -229,78 +229,6 @@ footer p {
     font-size: 0.5rem; /* Adjust the size as needed */
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    /* General mobile styles */
-    .navbar {
-        flex-direction: column;
-        transition: padding 0.3s ease-in-out; /* Added transition for smooth collapsing */
-        padding: 20px 40px; /* Default padding */
-    }
-
-    .nav-links {
-        flex-direction: column;
-        align-items: center;
-        transition: margin 0.3s ease-in-out; /* Added transition for smooth collapsing */
-    }
-
-    .nav-links li {
-        margin: 10px 0;
-    }
-
-    .hero-content h1 {
-        font-size: 2.5em;
-    }
-
-    .hero-content p {
-        font-size: 1.2em;
-    }
-
-    .projects .project-grid {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .project-item {
-        width: 100%;
-    }
-
-    /* Shrinking/Folding Navigation Bar */
-    header {
-        transition: transform 0.3s ease-in-out; /* Added transition for smooth hiding */
-        transform: translateY(0); /* Default position */
-        position: fixed;
-        width: 100%;
-        z-index: 1000;
-    }
-
-    header.shrink {
-        padding: 10px 20px;
-        background-color: rgba(255, 255, 255, 0.9);
-    }
-
-    header.shrink .navbar {
-        padding: 10px 20px;
-    }
-
-    .logo {
-        font-size: 1.2em;
-        transition: font-size 0.3s ease-in-out;
-    }
-
-    header.shrink .logo {
-        font-size: 1em;
-    }
-
-    header.hidden {
-        transform: translateY(-100%); /* Move the header out of view */
-    }
-
-    .gallery-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
 /* Gallery Section */
 .gallery {
     padding: 80px 20px;
@@ -388,4 +316,83 @@ footer p {
 
 .return-btn:hover {
     background-color: #4f80b1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    /* General mobile styles */
+    .navbar {
+        flex-direction: column;
+        transition: padding 0.3s ease-in-out; /* Added transition for smooth collapsing */
+        padding: 20px 40px; /* Default padding */
+    }
+
+    .nav-links {
+        flex-direction: column;
+        align-items: center;
+        transition: margin 0.3s ease-in-out; /* Added transition for smooth collapsing */
+    }
+
+    .nav-links li {
+        margin: 10px 0;
+    }
+
+    .hero-content h1 {
+        font-size: 2.5em;
+    }
+
+    .hero-content p {
+        font-size: 1.2em;
+    }
+
+    .projects .project-grid {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .project-item {
+        width: 100%;
+    }
+
+    /* Shrinking/Folding Navigation Bar */
+    header {
+        transition: transform 0.3s ease-in-out; /* Added transition for smooth hiding */
+        transform: translateY(0); /* Default position */
+        position: fixed;
+        width: 100%;
+        z-index: 1000;
+    }
+
+    header.shrink {
+        padding: 10px 20px;
+        background-color: rgba(255, 255, 255, 0.9);
+    }
+
+    header.shrink .navbar {
+        padding: 10px 20px;
+    }
+
+    .logo {
+        font-size: 1.2em;
+        transition: font-size 0.3s ease-in-out;
+    }
+
+    header.shrink .logo {
+        font-size: 1em;
+    }
+
+    header.hidden {
+        transform: translateY(-100%); /* Move the header out of view */
+    }
+
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(1, 1fr);
+        gap: 20px;
+    }
+    
+    /* Mobile tap effect for zoom */
+    .gallery-item:active .gallery-img {
+        transform: scale(1.1);
+    }
 }
