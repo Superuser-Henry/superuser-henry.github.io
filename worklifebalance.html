@@ -87,6 +87,19 @@
     .headerActions > *{
       flex:0 0 auto;
     }
+    @media (max-width: 1020px){
+      .resultHd{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .resultHd h2{
+        width:100%;
+      }
+      .resultHd .headerActions{
+        width:100%;
+        justify-content:flex-start;
+      }
+    }
     .infoTip{
       position:relative;
       display:inline-flex;
@@ -623,7 +636,7 @@
 
     <!-- RIGHT: City inputs + results -->
     <section class="card">
-      <div class="hd">
+      <div class="hd resultHd">
         <h2>② 城市/岗位输入（你填） + ③ 结果（自动）</h2>
         <div class="headerActions">
           <button id="addCity" class="primary">+ 添加城市</button>
@@ -932,10 +945,10 @@
 
   function setAllParamControls(){
     bindRange("gamma","gamma","gammaVal",(v)=>v.toFixed(2));
-    bindRange("tGood","tGood","tGoodVal",(v)=>Math.round(v));
-    bindRange("tBad","tBad","tBadVal",(v)=>Math.round(v));
-    bindRange("hGood","hGood","hGoodVal",(v)=>Math.round(v));
-    bindRange("hBad","hBad","hBadVal",(v)=>Math.round(v));
+    bindRange("tGood","tGood","tGoodVal",(v)=>`${Math.round(v)} 分钟`);
+    bindRange("tBad","tBad","tBadVal",(v)=>`${Math.round(v)} 分钟`);
+    bindRange("hGood","hGood","hGoodVal",(v)=>`${Math.round(v)} 小时`);
+    bindRange("hBad","hBad","hBadVal",(v)=>`${Math.round(v)} 小时`);
 
     bindRange("wC","wC","wCVal",(v)=>v.toFixed(2));
     bindRange("wOT","wOT","wOTVal",(v)=>v.toFixed(2));
@@ -1084,10 +1097,10 @@
       if (out) out.textContent = fmtFn(params[key]);
     };
     sync("gamma","gamma","gammaVal",(v)=>v.toFixed(2));
-    sync("tGood","tGood","tGoodVal",(v)=>Math.round(v));
-    sync("tBad","tBad","tBadVal",(v)=>Math.round(v));
-    sync("hGood","hGood","hGoodVal",(v)=>Math.round(v));
-    sync("hBad","hBad","hBadVal",(v)=>Math.round(v));
+    sync("tGood","tGood","tGoodVal",(v)=>`${Math.round(v)} 分钟`);
+    sync("tBad","tBad","tBadVal",(v)=>`${Math.round(v)} 分钟`);
+    sync("hGood","hGood","hGoodVal",(v)=>`${Math.round(v)} 小时`);
+    sync("hBad","hBad","hBadVal",(v)=>`${Math.round(v)} 小时`);
 
     sync("wC","wC","wCVal",(v)=>v.toFixed(2));
     sync("wOT","wOT","wOTVal",(v)=>v.toFixed(2));
