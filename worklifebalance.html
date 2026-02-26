@@ -36,7 +36,7 @@
     }
     h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
     header .sub{color:var(--muted);font-size:15px;line-height:1.5}
-    main{padding:14px 18px 40px; max-width: 1240px; margin:0 auto;}
+    main{padding:14px 18px 40px; max-width: 1360px; margin:0 auto;}
     .grid{
       display:grid;
       grid-template-columns: 460px 1fr;
@@ -45,6 +45,10 @@
     }
     @media (max-width: 1020px){
       .grid{grid-template-columns: 1fr;}
+    }
+    @media (min-width: 1400px){
+      main{max-width: 1520px;}
+      .grid{grid-template-columns: 520px 1fr;}
     }
     .card{
       background: linear-gradient(180deg, #ffffff, #f7fbff);
@@ -82,6 +86,50 @@
     }
     .headerActions > *{
       flex:0 0 auto;
+    }
+    .infoTip{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      margin-left:4px;
+      vertical-align:middle;
+    }
+    .infoIcon{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:auto;
+      height:auto;
+      color:#1e293b;
+      font-size:13px;
+      font-weight:600;
+      line-height:1;
+      cursor:help;
+      user-select:none;
+    }
+    .infoBubble{
+      position:absolute;
+      left:0;
+      top:22px;
+      width:340px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(15,23,42,.15);
+      background:#ffffff;
+      color:#1e293b;
+      box-shadow:0 10px 24px rgba(15,23,42,.14);
+      font-size:12px;
+      line-height:1.5;
+      z-index:20;
+      opacity:0;
+      pointer-events:none;
+      transform:translateY(4px);
+      transition:opacity .15s ease, transform .15s ease;
+    }
+    .infoTip:hover .infoBubble,
+    .infoTip:focus-within .infoBubble{
+      opacity:1;
+      transform:translateY(0);
     }
     label{display:block;font-size:14px;color:var(--muted);margin:6px 0 6px}
     input[type="number"], input[type="text"], select{
@@ -194,6 +242,22 @@
       line-height:1.6;
     }
     .small{font-size:12px;color:var(--muted)}
+    .rlInputs{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(76px, 1fr));
+      gap:6px;
+      align-items:end;
+    }
+    .rlLabel{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:4px;
+      white-space:nowrap;
+    }
+    .rlHeader{
+      margin-top:4px;
+      margin-bottom:2px;
+    }
     .twoCols{
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -236,13 +300,51 @@
       margin-top:6px;
       white-space:nowrap;
     }
+    .mathBlock{
+      margin-top:10px;
+      border:1px dashed rgba(15,23,42,.18);
+      border-radius:12px;
+      padding:10px;
+      background:rgba(255,255,255,.9);
+    }
+    .mathTitle{
+      font-size:14px;
+      font-weight:700;
+      margin:8px 0 6px;
+      color:#0f172a;
+    }
+    .formula{
+      font-size:15px;
+      line-height:1.7;
+      color:#0f172a;
+      margin:6px 0;
+      overflow-x:auto;
+      white-space:nowrap;
+    }
+    .formula mjx-container{margin:0 !important}
+    .mathList{margin:6px 0 0;padding-left:18px}
+    .mathList li{margin:3px 0}
+    .formulaFinal{
+      line-height:2.1;
+      padding:8px 0;
+    }
   </style>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
 <header>
-  <h1>全球“有生活”打分器（详细说明版）</h1>
+  <h1>全球“有生活”打分器</h1>
   <div class="sub">
-    你只要填“人能理解的数字”：分钟、小时、0–10 评分、0–100 评分。系统会自动计算并排序。<br/>
+    你只要填“人能理解的数字”：分钟、小时、0–10 评分、0–100 评分。系统会自动计算并排序。
     <span class="tag">生活体验分</span><span class="tag">身份自由分</span><span class="tag">总分</span> 都是 0–100。
   </div>
 </header>
@@ -391,10 +493,6 @@
             </div>
             <input id="wOT" type="range" min="0" max="0.60" step="0.01" />
             <div class="ref">参考：0.15（一般） · <b>0.23（正常）</b> · 0.35（非常在意时间主权）</div>
-            <details>
-              <summary>展开：为什么“工时”单独拉出来？</summary>
-              <p>工时是“生活时间被侵占”的最直接指标。很多人以为自己能扛住 55h，但长期看会影响睡眠、运动、社交与心理恢复。</p>
-            </details>
           </div>
         </div>
 
@@ -406,16 +504,6 @@
             </div>
             <input id="wWS" type="range" min="0" max="0.60" step="0.01" />
             <div class="ref">参考：0.12（不太在意） · <b>0.20（正常）</b> · 0.30（对压力很敏感）</div>
-            <details>
-              <summary>展开：压力怎么填才不“玄学”？</summary>
-              <p>用 1–10：1=几乎不想工作，10=长期影响睡眠。你也可以这样判断：</p>
-              <ul>
-                <li>3：下班基本不会想工作</li>
-                <li>5：有压力但可控</li>
-                <li>7：经常焦虑/担心绩效/裁员</li>
-                <li>9：持续压迫感、影响健康</li>
-              </ul>
-            </details>
           </div>
 
           <div class="slider">
@@ -425,16 +513,6 @@
             </div>
             <input id="wRL" type="range" min="0" max="0.60" step="0.01" />
             <div class="ref">参考：0.10（一般） · <b>0.15（正常）</b> · 0.25（非常在意恢复/生活品质）</div>
-            <details>
-              <summary>展开：下班放松 4 个小项怎么填？（强烈建议照着填）</summary>
-              <ul>
-                <li><b>RL1 自由时间</b>（0–10）：下班后真正自由时间 2h≈4，3h≈6，4h≈8。</li>
-                <li><b>RL2 夜间资源</b>：餐饮/咖啡/文化/音乐是否方便且不贵。</li>
-                <li><b>RL3 运动户外</b>：公园、健身房、骑行路网是否容易到达。</li>
-                <li><b>RL4 主观恢复</b>：你觉得自己下班能不能“回满血”。</li>
-              </ul>
-              <p>每项 2/5/8/10 都很好用：2=很差，5=一般，8=很好，10=极佳。</p>
-            </details>
           </div>
         </div>
 
@@ -563,7 +641,7 @@
             3) 最后填：<b>V1–V5</b>（身份自由），如果你不确定就按“90/70/50/30”四档先填一个估计值，后续再修正
           </div>
           <details style="margin-top:10px">
-            <summary>展开：V1–V5（0–100）怎么打分？给你“很傻瓜”的档位</summary>
+            <summary>V1–V5（0–100）怎么打分？给你“很傻瓜”的档位</summary>
             <p>你只需要选一个“等级区间”就够用了：</p>
             <ul>
               <li><b>90–100</b>：非常自由（接近本地人）</li>
@@ -587,23 +665,53 @@
           <table id="cityTable">
             <thead>
               <tr>
-                <th style="min-width:140px">城市</th>
-                <th style="min-width:120px">通勤(min)<div class="small">15舒服/30正常/45偏高/60高/90不可持续</div></th>
-                <th style="min-width:110px">方式加成<div class="small">骑行+15 地铁+10 公交+5 自驾0</div></th>
-                <th style="min-width:105px">工时/周<div class="small">40正常 45偏忙 50挤压 60红线</div></th>
-                <th style="min-width:110px">压力1–10<div class="small">3低 5正常 7高 9极高</div></th>
-                <th style="min-width:240px">下班放松 RL1–4 (0–10)<div class="small">2差 5一般 8很好 10极佳</div></th>
-                <th style="min-width:120px">周末小时<div class="small">36舒服 30正常 24偏少 16少</div></th>
-                <th style="min-width:110px">周末多样性<div class="small">3少 5正常 8丰富 10极强</div></th>
+                <th rowspan="2" style="min-width:140px">城市</th>
+                <th rowspan="2" style="min-width:136px">通勤(min)<div class="small">15舒服/30正常/45偏高/60高/90不可持续</div></th>
+                <th rowspan="2" style="min-width:126px">方式加成<div class="small">骑行+15 地铁+10 公交+5 自驾0</div></th>
+                <th rowspan="2" style="min-width:105px">
+                  工时/周
+                  <span class="infoTip">
+                    <span class="infoIcon" tabindex="0">ⓘ</span>
+                    <span class="infoBubble">为什么“工时”单独拉出来？<br/>工时是“生活时间被侵占”的最直接指标。很多人以为自己能扛住 55h，但长期看会影响睡眠、运动、社交与心理恢复。</span>
+                  </span>
+                  <div class="small">40正常 45偏忙 50挤压 60红线</div>
+                </th>
+                <th rowspan="2" style="min-width:110px">
+                  压力1–10
+                  <span class="infoTip">
+                    <span class="infoIcon" tabindex="0">ⓘ</span>
+                    <span class="infoBubble">压力怎么填才不“玄学”？<br/>用 1–10：1=几乎不想工作，10=长期影响睡眠。你也可以这样判断：<br/><br/>3：下班基本不会想工作<br/>5：有压力但可控<br/>7：经常焦虑/担心绩效/裁员<br/>9：持续压迫感、影响健康</span>
+                  </span>
+                  <div class="small">3低 5正常 7高 9极高</div>
+                </th>
+                <th rowspan="2" style="min-width:240px">
+                  下班放松 RL1–4 (0–10)
+                  <span class="infoTip">
+                    <span class="infoIcon" tabindex="0">ⓘ</span>
+                    <span class="infoBubble">下班放松 4 个小项怎么填？（强烈建议照着填）<br/>RL1 自由时间（0–10）：下班后真正自由时间 2h≈4，3h≈6，4h≈8。<br/>RL2 夜间资源：餐饮/咖啡/文化/音乐是否方便且不贵。<br/>RL3 运动户外：公园、健身房、骑行路网是否容易到达。<br/>RL4 主观恢复：你觉得自己下班能不能“回满血”。<br/>每项 2/5/8/10 都很好用：2=很差，5=一般，8=很好，10=极佳。</span>
+                  </span>
+                  <div class="small">2差 5一般 8很好 10极佳</div>
+                  <div class="rlInputs rlHeader">
+                    <div class="rlLabel">RL1 自由时间</div>
+                    <div class="rlLabel">RL2 夜间资源</div>
+                    <div class="rlLabel">RL3 运动户外</div>
+                    <div class="rlLabel">RL4 主观恢复</div>
+                  </div>
+                </th>
+                <th rowspan="2" style="min-width:120px">周末小时<div class="small">36舒服 30正常 24偏少 16少</div></th>
+                <th rowspan="2" style="min-width:110px">周末多样性<div class="small">3少 5正常 8丰富 10极强</div></th>
+                <th colspan="5">身份自由</th>
+                <th rowspan="2" style="min-width:90px">生活体验分</th>
+                <th rowspan="2" style="min-width:90px">身份自由分</th>
+                <th rowspan="2">总分</th>
+                <th rowspan="2"></th>
+              </tr>
+              <tr>
                 <th style="min-width:80px">V1<div class="small">90/70/50/30</div></th>
                 <th style="min-width:80px">V2<div class="small">90/70/50/30</div></th>
                 <th style="min-width:80px">V3<div class="small">90/70/50/30</div></th>
                 <th style="min-width:80px">V4<div class="small">90/70/50/30</div></th>
                 <th style="min-width:80px">V5<div class="small">90/70/50/30</div></th>
-                <th>生活体验分</th>
-                <th>身份自由分</th>
-                <th>总分</th>
-                <th></th>
               </tr>
             </thead>
             <tbody id="cityTbody"></tbody>
@@ -617,6 +725,67 @@
           <b>身份自由分</b> = V1–V5（按权重加权）。<br/>
           <b>总分</b> = (1-γ)*生活体验分 + γ*身份自由分。</p>
           <p>你不需要理解公式，只要按参考档位填数字，结果就会很稳定。</p>
+          <div class="mathBlock">
+            <div class="mathTitle">0) 输入与记号</div>
+            <div class="small"><b>生活体验输入</b></div>
+            <ul class="mathList small">
+              <li><span class="formula">\(t_i\)</span>：单程通勤时间（分钟）</li>
+              <li><span class="formula">\(b_i\)</span>：通勤方式加成（可正可负）</li>
+              <li><span class="formula">\(h_i\)</span>：每周工作时长（小时）</li>
+              <li><span class="formula">\(s_i\)</span>：工作压力等级（1–10，越大越压）</li>
+              <li><span class="formula">\(r_{i1}, r_{i2}, r_{i3}, r_{i4}\)</span>：下班放松四项（每项 0–10）</li>
+              <li><span class="formula">\(H_i\)</span>：周末可支配时间（小时，0–48）</li>
+              <li><span class="formula">\(v_i\)</span>：周末活动多样性（0–10）</li>
+            </ul>
+            <div class="small" style="margin-top:6px"><b>身份/流动输入（0–100）</b></div>
+            <ul class="mathList small">
+              <li><span class="formula">\(V_{i1}\)</span>：签证/居留稳定</li>
+              <li><span class="formula">\(V_{i2}\)</span>：跳槽自由度</li>
+              <li><span class="formula">\(V_{i3}\)</span>：副业/自雇自由度</li>
+              <li><span class="formula">\(V_{i4}\)</span>：出入境与地缘政治风险（越高越安全）</li>
+              <li><span class="formula">\(V_{i5}\)</span>：永居/长期路径清晰度</li>
+            </ul>
+
+            <div class="mathTitle">1) 常数阈值（可调）</div>
+            <ul class="mathList small">
+              <li><span class="formula">\(t_{\text{good}}\)</span>：舒适通勤阈值（默认 15）</li>
+              <li><span class="formula">\(t_{\text{bad}}\)</span>：不可接受通勤阈值（默认 90）</li>
+              <li><span class="formula">\(h_{\text{good}}\)</span>：健康工时阈值（默认 40）</li>
+              <li><span class="formula">\(h_{\text{bad}}\)</span>：不可持续工时阈值（默认 60）</li>
+            </ul>
+            <div class="formula">\[t_{\text{bad}} > t_{\text{good}},\quad h_{\text{bad}} > h_{\text{good}}\]</div>
+
+            <div class="mathTitle">2) 生活体验各子项的 0–100 评分</div>
+            <div class="small"><b>2.1 通勤时间分 \(C_i^{(t)}\)</b></div>
+            <div class="formula">\[C_i^{(t)}=\operatorname{clip}\!\left(100\cdot\frac{t_{\text{bad}}-t_i}{t_{\text{bad}}-t_{\text{good}}},\,0,\,100\right)\]</div>
+            <div class="formula">\[\operatorname{clip}(x,0,100)=\min\{100,\max\{0,x\}\}\]</div>
+            <div class="small"><b>2.2 通勤总分 \(C_i\)</b></div>
+            <div class="formula">\[C_i=\operatorname{clip}\!\left(C_i^{(t)}+b_i,\,0,\,100\right)\]</div>
+            <div class="small"><b>2.3 工时/加班分 \(OT_i\)</b></div>
+            <div class="formula">\[OT_i=\operatorname{clip}\!\left(100\cdot\frac{h_{\text{bad}}-h_i}{h_{\text{bad}}-h_{\text{good}}},\,0,\,100\right)\]</div>
+            <div class="small"><b>2.4 压力分 \(WS_i\)</b></div>
+            <div class="formula">\[WS_i=100\cdot\left(1-\frac{s_i-1}{9}\right)\]</div>
+            <div class="small"><b>2.5 下班放松分 \(RL_i\)</b></div>
+            <div class="formula">\[RL_i=10\cdot\frac{r_{i1}+r_{i2}+r_{i3}+r_{i4}}{4}\]</div>
+            <div class="small"><b>2.6 周末分 \(WE_i\)</b></div>
+            <div class="formula">\[WE_i^{(t)}=100\cdot\frac{\operatorname{clip}(H_i,0,48)}{48},\quad WE_i^{(v)}=10\cdot\operatorname{clip}(v_i,0,10)\]</div>
+            <div class="formula">\[WE_i=\frac{1}{2}WE_i^{(t)}+\frac{1}{2}WE_i^{(v)}\]</div>
+
+            <div class="mathTitle">3) 生活体验总分 \(LEI_i\)</div>
+            <div class="formula">\[w_C,w_{OT},w_{WS},w_{RL},w_{WE}\ge 0,\qquad \bar w_k=\frac{w_k}{\sum_j w_j},\ k\in\{C,OT,WS,RL,WE\}\]</div>
+            <div class="formula">\[LEI_i=\bar w_C C_i+\bar w_{OT}OT_i+\bar w_{WS}WS_i+\bar w_{RL}RL_i+\bar w_{WE}WE_i\]</div>
+
+            <div class="mathTitle">4) 身份/流动总分 \(IMS_i\)</div>
+            <div class="formula">\[a_1,a_2,a_3,a_4,a_5\ge 0,\qquad \bar a_k=\frac{a_k}{\sum_{j=1}^{5}a_j},\ k=1,\ldots,5\]</div>
+            <div class="formula">\[IMS_i=\bar a_1V_{i1}+\bar a_2V_{i2}+\bar a_3V_{i3}+\bar a_4V_{i4}+\bar a_5V_{i5}\]</div>
+
+            <div class="mathTitle">5) 最终总分 \(LWGS_i\)</div>
+            <div class="formula">\[\gamma\in[0,0.7],\qquad LWGS_i=(1-\gamma)\,LEI_i+\gamma\,IMS_i\]</div>
+
+            <div class="mathTitle">6) 一行总公式（最终版）</div>
+            <div class="formula formulaFinal">\[LWGS_i=(1-\gamma)\left(\sum_{k\in\{C,OT,WS,RL,WE\}}\bar w_kX_{ik}\right)+\gamma\left(\sum_{j=1}^{5}\bar a_jV_{ij}\right)\]</div>
+            <div class="small">其中 \(X_{ik}\) 分别是 \(C_i,OT_i,WS_i,RL_i,WE_i\)，并由第 2 节映射得到。</div>
+          </div>
         </details>
 
         <div class="sep"></div>
@@ -794,7 +963,6 @@
 
   function cityRow(i, city){
     const res = scoreAll(city, params);
-    const rlAvg = (clamp(city.rl1,0,10)+clamp(city.rl2,0,10)+clamp(city.rl3,0,10)+clamp(city.rl4,0,10))/4;
 
     return `
       <tr>
@@ -804,8 +972,7 @@
         <td><input type="number" min="0" max="100" step="1" value="${city.hoursWeek}" data-i="${i}" data-k="hoursWeek" /></td>
         <td><input type="number" min="1" max="10" step="1" value="${city.stress}" data-i="${i}" data-k="stress" /></td>
         <td>
-          <div class="small">RL 平均：${fmt(rlAvg,1)}（每项0–10）</div>
-          <div class="row" style="gap:6px;flex-wrap:nowrap">
+          <div class="rlInputs">
             <input type="number" min="0" max="10" step="1" value="${city.rl1}" data-i="${i}" data-k="rl1" title="RL1 自由时间" />
             <input type="number" min="0" max="10" step="1" value="${city.rl2}" data-i="${i}" data-k="rl2" title="RL2 夜间资源" />
             <input type="number" min="0" max="10" step="1" value="${city.rl3}" data-i="${i}" data-k="rl3" title="RL3 运动户外" />
