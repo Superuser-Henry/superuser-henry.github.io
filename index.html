@@ -3,263 +3,470 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Henry's Personal Website</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;600&display=swap" rel="stylesheet">
+    <title>Henry Huang | Engineer & Musician</title>
+    <style>
+        /* --- 基础变量与重置 --- */
+        :root {
+            --bg-color: #ffffff;
+            --bg-alt: #f8f9fa;
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --accent: #2563eb; /* 科技蓝 */
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', 'Roboto Mono', Menlo, monospace;
+            --max-width: 1000px;
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- 极客风格工具类 --- */
+        .mono { font-family: var(--font-mono); font-size: 0.9em; color: var(--accent); }
+        .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
+        .section-padding { padding: 80px 0; }
+        a { text-decoration: none; color: inherit; transition: 0.2s; }
+        a:hover { color: var(--accent); }
+
+        /* --- 导航栏 --- */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid #eee;
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+        .logo { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.5px; }
+        .logo span { color: var(--accent); }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links a { font-size: 0.95rem; font-weight: 500; color: var(--text-muted); }
+        .nav-links a:hover { color: var(--text-main); }
+
+        /* --- Hero 区域 --- */
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--text-main);
+            color: #fff;
+            border-radius: var(--radius);
+            font-weight: 600;
+        }
+        .btn:hover { background: var(--accent); color: #fff; transform: translateY(-2px); }
+        .scroll-down {
+            position: absolute;
+            bottom: 40px;
+            animation: bounce 2s infinite;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        /* --- About Section --- */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+        .about-img img {
+            width: 100%;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            filter: grayscale(20%); /* 轻微黑白感，增加极客范 */
+            transition: filter 0.3s;
+        }
+        .about-img img:hover { filter: grayscale(0%); }
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            position: relative;
+            display: inline-block;
+        }
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 4px;
+            background: var(--accent);
+            margin-top: 10px;
+        }
+
+        /* --- Experience Timeline --- */
+        .timeline-item {
+            border-left: 2px solid #eee;
+            padding-left: 30px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+        .timeline-date { font-family: var(--font-mono); color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px; display: block;}
+        .timeline-content h3 { margin-bottom: 5px; }
+        .timeline-content h4 { color: var(--text-muted); font-weight: 500; margin-bottom: 10px; }
+        .exp-img {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            margin-top: 15px;
+            border-radius: var(--radius);
+            border: 1px solid #eee;
+        }
+
+        /* --- Projects Grid --- */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        .project-card {
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 25px;
+            border-radius: var(--radius);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border-color: var(--accent);
+        }
+        .project-tags { margin-top: auto; padding-top: 20px; }
+        .tag {
+            background: var(--bg-alt);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            margin-right: 5px;
+            color: var(--text-muted);
+        }
+
+        /* --- Gallery (Masonry-ish) --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .gallery-item {
+            overflow: hidden;
+            border-radius: var(--radius);
+            position: relative;
+            aspect-ratio: 4/3;
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+        .gallery-item:hover img { transform: scale(1.05); }
+        .gallery-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 8px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+        }
+        .gallery-item:hover .gallery-caption { opacity: 1; }
+
+        /* --- Footer --- */
+        footer {
+            background: var(--bg-alt);
+            padding: 50px 0;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .social-links a {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .copyright { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* --- 响应式 --- */
+        @media (max-width: 768px) {
+            .about-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2.5rem; }
+            .nav-links { display: none; } /* 简化处理，移动端可隐藏菜单或后续添加汉堡菜单 */
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+        
+        /* 打字机光标动画 */
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            background-color: var(--accent);
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
 </head>
 <body>
-    <!-- Header with Navigation -->
+
     <header>
-        <nav class="navbar">
-            <div class="logo">HENRY.H 🚴🎷🔧</div> <!-- Bicycle and Saxophone emoji as the logo -->
-            <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#projects">Projects</a></li>
-                <li><a href="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/eeebba00baf29557fd1f695e2579f05edb989b4c/Henry%20Huang%20Resume%201.27.2025.pdf">Résumé</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">HENRY<span>.H</span></a>
+                <div class="nav-links">
+                    <a href="#about">About</a>
+                    <a href="#experience">Experience</a>
+                    <a href="#projects">Projects</a>
+                    <a href="#gallery">Gallery</a>
+                    <a href="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/eeebba00baf29557fd1f695e2579f05edb989b4c/Henry%20Huang%20Resume%201.27.2025.pdf" target="_blank" style="color: var(--accent);">Résumé</a>
+                </div>
+            </nav>
+        </div>
     </header>
 
-    <!-- Hero Section -->
     <section class="hero" id="home">
-        <div class="hero-content">
-            <h1>Hey, welcome. This is Henry.</h1> <!-- Updated greeting text -->
-            <p style="font-size: 100%;">Hope you enjoy this webpage and the pictures! The cover photo was taken by White Rock Lake in Dallas, TX</p> <!-- Updated description text -->
-            <a href="#about" class="cta-button">Learn More</a>
+        <div class="container">
+            <p class="mono">Hello, World! I am</p>
+            <h1 id="typewriter">Shenqiu (Henry) Huang</h1>
+            <p>Electrical & Computer Engineering Student @ SMU <br> Saxophone Player • Cyclist • Maker</p>
+            <a href="#about" class="btn">More About Me</a>
+            
+            <div class="scroll-down">↓</div>
         </div>
     </section>
 
-    <!-- About Section -->
-    <section class="about" id="about">
+    <section id="about" class="section-padding" style="background-color: var(--bg-alt);">
         <div class="container">
-            <h2>About Me</h2>
-            <p>
-                Hey there! I’m Henry Huang, but you can call me Shenqiu if you’re feeling formal. I’m originally from Shanghai, China. YES!!! SHANGHAI!!! 
-                But now I’m calling Dallas, TX, working on my Bachelor’s in Electrical and Computer Engineering at SMU. I’am also minoring in Music – Saxophone Performance because, why not blend tech with some tunes, right?
-                <br><br>
-                I’m big into cycling—I did a lot of racing back in high school. There’s something about the freedom of hitting the open road, breathing in the fresh air under the woods, that just feels right. 
-                I’m also a huge fan of all things mechanical, whether it’s bike gears, bearings, or car parts. Oh, I also fixed my friend's 1995 Miata ECU last summer! It's a fun story and I'm willing to share that with you.
-                 The craftsmanship and design that goes into these things fascinates me.
-                <br><br>
-                Besides tech and bikes, I’m all about music, with J-pop being my go-to jam. And being in Dallas, I’m still getting the hang of blending different cultures, which has been a cool part of my journey here in the States.
-                <br><br>
-                By the way, I'm also in the Mustang Band!!! This is the second year I'm in the marching band and I love the atmosphere of the games and rehersals.
-                <br><br>
-                So yeah, if you’re into tech, bikes, music, or just want to chat about the mix of cultures, hit me up. I’m always down to connect!
-            </p>
-        </div>
-
-
-        <!-- Gallery Section -->
-        <section class="gallery" id="gallery">
-            <div class="container">
-                <div class="gallery-grid">
-                    <div class="gallery-item">
-                        <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/ECU.jpg?raw=true" alt="Repairing Friend's MIATA ECU" class="gallery-img" onclick="openModal(this)">
-                    </div>
-                    <div class="gallery-item">
-                        <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/saxophone.jpg?raw=true" alt="Saxophone" class="gallery-img" onclick="openModal(this)">
-                    </div>
-                    <div class="gallery-item">
-                        <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/Cycling.jpg?raw=true" alt="Cycling" class="gallery-img" onclick="openModal(this)">
-                    </div>
-                    <div class="gallery-item">
-                        <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/FixingCar.jpg?raw=true" alt="Senso-ji" class="gallery-img" onclick="openModal(this)">
-                    </div>
-                    <div class="gallery-item">
-                        <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/PointingYou.jpg?raw=true" alt="CAR" class="gallery-img" onclick="openModal(this)">
-                    </div>
-                    <div class="gallery-item">
-                        <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/BicycleandLake.jpg?raw=true" alt="flight and flight" class="gallery-img" onclick="openModal(this)">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Modal for Full Image View -->
-        <div id="modal" class="modal">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <img class="modal-content" id="full-img">
-            <div id="caption"></div>
-            <button class="return-btn" onclick="closeModal()">Return</button>
-        </div>
-
-
-    </section>
-
-    <!-- Experiences and Leadership -->
-    <section class="projects" id="projects">
-        <div class="container">
-            <h2>Experiences and Leadership</h2>
-            <div class="project-grid">
-                <div class="project-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Projects/ATLAS.JPEG?raw=true" alt="Project 1">
-                    <h3>Research Assistant - SMU Physics ATLAS</h3>
-                    <p style="font-weight: bold;">May 2024 - Aug 2024</p>
+            <div class="about-grid">
+                <div>
+                    <h2 class="section-title">About Me</h2>
+                    <p style="margin-bottom: 15px;">
+                        Hey! I’m Henry Huang. Originally from <b>Shanghai, China</b>, I'm currently based in <b>Dallas, TX</b>, pursuing my Bachelor’s in Electrical and Computer Engineering at SMU, with a minor in Music (Saxophone Performance).
+                    </p>
+                    <p style="margin-bottom: 15px;">
+                        I believe in the intersection of technology and art. Whether I'm analyzing communication protocols, fixing a 1995 Miata ECU, or performing with the Mustang Band, I love figuring out how things work and making them better.
+                    </p>
                     <p>
-                        I was responsible for designing an automated system to ensure instrument stability on the ATLAS Project, 
-                        specifically connecting devices across different protocols and programming lab equipment to streamline data collection. 
-                        I also handled the organization of testing fibers. Additionally, I collaborated with our team to enhance calibration processes and used modern technology to improve inventory management efficiency.
+                        <span class="mono">> Interests:</span> <br>
+                        Cycling, Mechanical Engineering, J-Pop, Open Source, 3D Printing.
                     </p>
-                    <a href="https://atlas.cern/"target="_blank">- Learn More on ATLAS.CERN -</a>
                 </div>
-                <div class="project-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Projects/IEEEGroup.jpg?raw=true" alt="Project 2">
-                    <h3>Corresponding Chair - IEEE Student Branches</h3>
-                    <p style="font-weight: bold;">Jan 2024 - Present</p>
-                    <p>Since January 2024, I've been promoting Electrical and Computer Engineering events at SMU through social media, increasing visibility and student engagement. 
-                        Managing digital content has sharpened my communication and marketing skills, helping to create a more connected campus community.
-                    </p>
-                    <a href="https://students.ieee.org/"target="_blank">- Learn More on IEEE Students -</a>
+                <div class="about-img">
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/Cycling.jpg?raw=true" alt="Henry Cycling">
                 </div>
-                <div class="project-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Projects/Band.jpg?raw=true" alt="Project 3">
-                    <h3>Digital Technology Leader - Mustang Marching Band</h3>
-                    <p style="font-weight: bold;">Aug 2023 - Present</p>
-                    <p>Since August 2023, I’ve been mentoring students with no prior saxophone experience in the Mustang Marching Band, helping them grow musically. 
-                        I’ve also introduced new digital technology initiatives, including designing custom-built accessories for band use, enhancing the overall band experience.
-                    </p>
-                    <a href="https://www.smu.edu/studentaffairs/mustang-band"target="_blank">- About SMU Mustang Band -</a>
-                </div>
-                <!-- Add more projects as needed -->
             </div>
         </div>
     </section>
 
-     <!-- Projects Section -->
-     <section class="projects" id="projects">
+    <section id="experience" class="section-padding">
         <div class="container">
-            <h2>My Projects</h2>
-            <a>Click the title of project to view in details</a>
-            <div class="project-grid">
-                <div class="project-item">
-                    <h3>Individual Research</h3>
-                    <a href="https://ieeexplore.ieee.org/document/10090677"target="_blank"><connectlink>Analysis and Comparison of UART, SPI and I2C</connectlink></a>
-                    <p>In my recent research, I conducted an in-depth analysis and comparison of three fundamental communication protocols: UART, SPI, and I2C. 
-                        This involved evaluating their performance characteristics, advantages, and limitations across various applications, culminating in a comprehensive research paper. 
-                        The findings were presented and published at the 2023 IEEE 2nd International Conference on Electrical Engineering, Big Data, and Algorithms (EEBDA).</p>
+            <h2 class="section-title">Experience</h2>
+            
+            <div class="timeline-item">
+                <span class="timeline-date">MAY 2024 - AUG 2024</span>
+                <div class="timeline-content">
+                    <h3>Research Assistant</h3>
+                    <h4>SMU Physics ATLAS Project</h4>
+                    <p>Designed an automated system to ensure instrument stability. Connected devices across different protocols and programmed lab equipment to streamline data collection for CERN.</p>
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Projects/ATLAS.JPEG?raw=true" class="exp-img" alt="ATLAS">
                 </div>
-                <div class="project-item">
-                    <h3>Open-source Projects</h3>
-                    <a href="https://www.thingiverse.com/thing:5531157"target="_blank"><connectlink>Bike Computer Mount</connectlink></a>
-                    <p>3D modeling is a hobby of mine, and I like making both useful and random stuff to print. I really enjoy being part of the open-source community, and I've gotten a ton of help from lots of people. 
-                        I built a 3D printer using open-source BOM and firmware, and also made some keyboards using open-source PCB files. I had them manufactured and soldered them myself. 
-                        One of my projects was a custom bike computer mount that I designed in Fusion 360. I did some static simulation analysis to make sure it’s durable and functional, and you can find it on Thingiverse.
-                    </p>
+            </div>
+
+            <div class="timeline-item">
+                <span class="timeline-date">JAN 2024 - PRESENT</span>
+                <div class="timeline-content">
+                    <h3>Corresponding Chair</h3>
+                    <h4>IEEE Student Branches</h4>
+                    <p>Promoting ECE events at SMU through social media, increasing visibility and student engagement. Managing digital content and marketing strategies.</p>
                 </div>
-                <div class="project-item">
-                    <h3>Small Research Papers</h3>
-                    <h5>Here's some small research project I did in the past. Click the title to view the paper:</h5>
-                    <a href="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/043172d9e2f896547874f95f6649f9328ca44546/Researches/Music%20History%20Research%20Paper.pdf"target="_blank"><em style="color: #345779; font-weight: 600;">Echoes of Change: Mariya Takeuchi and the 1980s Japanese Pop Music Scene</em></a>
-                    <p>
-                        The paper explores the evolution of the 1980s Japanese pop music scene, with a focus on socio-economic and cultural factors that influenced the rise of J-pop and City Pop. 
-                        It highlights the artist Mariya Takeuchi and her iconic song Plastic Love, examining its impact on contemporary artists and internet culture.
-                    </p>
+            </div>
+
+            <div class="timeline-item">
+                <span class="timeline-date">AUG 2023 - PRESENT</span>
+                <div class="timeline-content">
+                    <h3>Digital Technology Leader</h3>
+                    <h4>Mustang Marching Band</h4>
+                    <p>Mentoring students in saxophone performance and introducing new digital initiatives, including designing custom-built accessories.</p>
                 </div>
-                <!-- Add more projects as needed -->
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
+    <section id="projects" class="section-padding" style="background-color: var(--bg-alt);">
+        <div class="container">
+            <h2 class="section-title">Projects & Research</h2>
+            <div class="projects-grid">
+                
+                <a href="https://ieeexplore.ieee.org/document/10090677" target="_blank" class="project-card">
+                    <h3>Protocol Analysis</h3>
+                    <p class="mono" style="margin: 10px 0; color: var(--text-muted);">Research Paper</p>
+                    <p>Analysis and comparison of UART, SPI, and I2C. Presented at 2023 IEEE EEBDA Conference.</p>
+                    <div class="project-tags">
+                        <span class="tag">Research</span>
+                        <span class="tag">Embedded Systems</span>
+                    </div>
+                </a>
+
+                <a href="https://www.thingiverse.com/thing:5531157" target="_blank" class="project-card">
+                    <h3>Bike Computer Mount</h3>
+                    <p class="mono" style="margin: 10px 0; color: var(--text-muted);">Open Source Hardware</p>
+                    <p>Designed in Fusion 360 with static simulation analysis. Durable, functional, and 3D printable.</p>
+                    <div class="project-tags">
+                        <span class="tag">CAD</span>
+                        <span class="tag">3D Printing</span>
+                    </div>
+                </a>
+
+                <a href="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/043172d9e2f896547874f95f6649f9328ca44546/Researches/Music%20History%20Research%20Paper.pdf" target="_blank" class="project-card">
+                    <h3>Echoes of Change</h3>
+                    <p class="mono" style="margin: 10px 0; color: var(--text-muted);">Humanities Research</p>
+                    <p>Explores 1980s Japanese Pop Music Scene, Mariya Takeuchi, and the rise of City Pop.</p>
+                    <div class="project-tags">
+                        <span class="tag">Music History</span>
+                        <span class="tag">Writing</span>
+                    </div>
+                </a>
+
+                <div class="project-card">
+                    <h3>Miata ECU Repair</h3>
+                    <p class="mono" style="margin: 10px 0; color: var(--text-muted);">Personal Project</p>
+                    <p>Fixed a friend's 1995 Miata ECU last summer. Diagnosed circuit issues and soldered components.</p>
+                    <div class="project-tags">
+                        <span class="tag">Electronics</span>
+                        <span class="tag">Automotive</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section id="gallery" class="section-padding">
+        <div class="container">
+            <h2 class="section-title">Gallery</h2>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Snapshots of my life: fixing things, playing music, and exploring.</p>
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/ECU.jpg?raw=true" loading="lazy" alt="ECU Repair">
+                    <div class="gallery-caption">ECU Repair</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/saxophone.jpg?raw=true" loading="lazy" alt="Saxophone">
+                    <div class="gallery-caption">Saxophone Performance</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/FixingCar.jpg?raw=true" loading="lazy" alt="Working on Cars">
+                    <div class="gallery-caption">Mechanic Mode</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/PointingYou.jpg?raw=true" loading="lazy" alt="Car">
+                    <div class="gallery-caption">Automotive Passion</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/BicycleandLake.jpg?raw=true" loading="lazy" alt="Bike and Lake">
+                    <div class="gallery-caption">White Rock Lake</div>
+                </div>
+                <div class="gallery-item">
+                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/Cycling.jpg?raw=true" loading="lazy" alt="Racing">
+                    <div class="gallery-caption">Cycling Racing</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <footer>
         <div class="container">
-            <p>&copy; 2025 Shenqiu Huang (Henry). All rights reserved.</p>
-            <p class="small-text">Powered by Github. Constructioned with ChatGPT and my big brain.</p>
             <div class="social-links">
-                <a href="https://www.linkedin.com/in/shenqiu-huang-aka-henry/">LinkedIn</a>
-                <a href="https://www.instagram.com/henryyyyh_ins?igsh=NmVvdnV2c25kOXRy&utm_source=qr">Instagram</a>
-                <a href="https://www.strava.com/athletes/54743596">Strava</a>
-                <a href="https://www.thingiverse.com/henryyyyhuang/designs">Thingiverse</a>
-                <a href="https://github.com/Superuser-Henry">GitHub</a>
                 <a href="mailto:shenqiuh@smu.edu">Email</a>
-                <a href="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/eeebba00baf29557fd1f695e2579f05edb989b4c/Henry%20Huang%20Resume%201.27.2025.pdf">Résumé</a>
+                <a href="https://www.linkedin.com/in/shenqiu-huang-aka-henry/" target="_blank">LinkedIn</a>
+                <a href="https://github.com/Superuser-Henry" target="_blank">GitHub</a>
+                <a href="https://www.strava.com/athletes/54743596" target="_blank">Strava</a>
+                <a href="https://www.thingiverse.com/henryyyyhuang/designs" target="_blank">Thingiverse</a>
+                <a href="https://www.instagram.com/henryyyyh_ins" target="_blank">Instagram</a>
             </div>
+            <p class="copyright">
+                &copy; 2025 Shenqiu (Henry) Huang. <br>
+                <span class="mono" style="font-size: 0.8rem;">Built with code & caffeine.</span>
+            </p>
         </div>
     </footer>
+
     <script>
-        // Function to check for HDR display support
-        function isHDRSupported() {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            if (!context) return false;
-    
-            const extension = context.getExtension('EXT_color_buffer_float') ||
-                              context.getExtension('WEBGL_color_buffer_float');
-            return !!extension;
-        }
-    
-        // Set the background image depending on HDR support
-        function setBackground() {
-            const heroSection = document.querySelector('.hero');
-            if (!heroSection) return; // Ensure hero section exists
-    
-            const hdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/raw/main/BackgroundPic.avif';
-            const nonHdrImage = 'https://github.com/Superuser-Henry/superuser-henry.github.io/raw/main/BackgroundPic.avif';
-    
-            heroSection.style.backgroundImage = `url('${isHDRSupported() ? hdrImage : nonHdrImage}')`;
-        }
-    
-        // Function to open the modal
-        function openModal(imgElement) {
-            const modal = document.getElementById("modal");
-            const modalImg = document.getElementById("full-img");
-            const captionText = document.getElementById("caption");
-    
-            if (!modal || !modalImg || !captionText) return;  // Ensure modal elements exist
-    
-            modal.style.display = "block";
-            modalImg.src = imgElement.src;
-            captionText.innerHTML = imgElement.alt;
-        }
-    
-        // Function to close the modal
-        function closeModal() {
-            const modal = document.getElementById("modal");
-            if (modal) modal.style.display = "none";
-        }
-    
         document.addEventListener('DOMContentLoaded', function() {
-            // Set background based on HDR support
-            setBackground();
-    
-            // Handle scroll event for navbar visibility
-            const header = document.querySelector('header');
-            if (header) {
-                let lastScrollTop = 0;
-    
-                window.addEventListener('scroll', function() {
-                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
-                    if (scrollTop > lastScrollTop) {
-                        header.classList.add('hidden');  // Scrolling down, hide the navbar
-                    } else {
-                        header.classList.remove('hidden');  // Scrolling up, show the navbar
-                    }
-    
-                    lastScrollTop = scrollTop;
-                });
+            const text = "Shenqiu (Henry) Huang";
+            const element = document.getElementById('typewriter');
+            element.innerHTML = ''; // 清空原始内容
+            let i = 0;
+            
+            function typeWriter() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 100); // 打字速度
+                } else {
+                    // 打字结束后添加闪烁光标
+                    element.innerHTML += '<span class="cursor">&nbsp;</span>';
+                }
             }
-    
-            // Handle the smooth scroll behavior for CTA button
-            const ctaButton = document.querySelector('.cta-button');
-            if (ctaButton) {
-                ctaButton.addEventListener('click', function(e) {
-                    e.preventDefault();  // Prevent default anchor behavior
-    
-                    const targetId = this.getAttribute('href');
-                    const targetSection = document.querySelector(targetId);
-                    if (targetSection) {
-                        // Scroll smoothly to the target section
-                        window.scrollTo({
-                            top: targetSection.offsetTop,
-                            behavior: 'smooth'
-                        });
-                    }
-                });
-            }
+            
+            // 稍微延迟一点开始
+            setTimeout(typeWriter, 500);
         });
-    </script>    
+    </script>
 </body>
 </html>

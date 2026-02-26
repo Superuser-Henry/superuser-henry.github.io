@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>全球“有生活”打分器（详细说明版）</title>
+  <style>
+    :root{
+      --bg:#f3f7ff;
+      --card:#ffffff;
+      --muted:#526173;
+      --text:#0f172a;
+      --accent:#0ea5a3;
+      --accent2:#ef476f;
+      --line:#d4deeb;
+      --good:#49d17d;
+      --bad:#ff6b6b;
+      --warn:#f9c80e;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-size:16px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(53,76,161,.16), transparent 60%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(255,16,83,.12), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:20px 18px 10px;
+      border-bottom:1px solid rgba(15,23,42,.10);
+      position:sticky; top:0; backdrop-filter: blur(10px);
+      background: rgba(255,255,255,.86);
+      z-index:10;
+    }
+    h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
+    header .sub{color:var(--muted);font-size:15px;line-height:1.5}
+    main{padding:14px 18px 40px; max-width: 1240px; margin:0 auto;}
+    .grid{
+      display:grid;
+      grid-template-columns: 460px 1fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 1020px){
+      .grid{grid-template-columns: 1fr;}
+    }
+    .card{
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      border: 1px solid rgba(15,23,42,.10);
+      border-radius: 16px;
+      box-shadow: 0 10px 26px rgba(15,23,42,.08);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid rgba(15,23,42,.10);
+      gap:10px;
+    }
+    .card .hd h2{margin:0;font-size:16px}
+    .card .bd{padding:14px}
+    .pill{
+      padding:4px 8px;
+      border-radius:999px;
+      background: rgba(14,165,163,.14);
+      border:1px solid rgba(13,148,136,.38);
+      color: #0f766e;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    .muted{color:var(--muted)}
+    .row{display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap;}
+    .row > * {flex: 1;}
+    .headerActions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      flex:0 0 auto;
+      flex-wrap:nowrap;
+    }
+    .headerActions > *{
+      flex:0 0 auto;
+    }
+    label{display:block;font-size:14px;color:var(--muted);margin:6px 0 6px}
+    input[type="number"], input[type="text"], select{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(15,23,42,.18);
+      background: #ffffff;
+      color:var(--text);
+      outline:none;
+    }
+    input[type="number"]:focus, input[type="text"]:focus, select:focus{
+      border-color: rgba(14,165,163,.65);
+      box-shadow: 0 0 0 3px rgba(14,165,163,.16);
+    }
+    input[type="range"]{width:100%}
+    .slider{
+      padding:10px 10px 10px;
+      border:1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.90);
+      border-radius: 14px;
+    }
+    .slider .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+    .slider .top .name{font-size:14px;color:var(--muted)}
+    .slider .top .val{font-variant-numeric: tabular-nums; font-size:14px}
+    .ref{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+    details{
+      margin-top:10px;
+      border-radius:14px;
+      border:1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.88);
+      padding:10px 10px;
+    }
+    summary{cursor:pointer; color:#1e293b; font-size:14px;}
+    details p, details ul{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.6;
+    }
+    details ul{padding-left:18px}
+    .sep{height:1px;background:rgba(15,23,42,.10);margin:12px 0}
+    .btns{display:flex; gap:10px; flex-wrap:wrap;}
+    button{
+      padding:10px 12px;
+      font-size:14px;
+      border-radius: 14px;
+      border:1px solid rgba(15,23,42,.18);
+      background: #ffffff;
+      color:var(--text);
+      cursor:pointer;
+    }
+    button:hover{border-color: rgba(89,195,195,.55)}
+    button.primary{
+      background: rgba(89,195,195,.16);
+      border-color: rgba(89,195,195,.55);
+    }
+    button.danger{
+      background: rgba(255,16,83,.12);
+      border-color: rgba(255,16,83,.45);
+      min-width: 64px;
+      white-space: nowrap;
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size:13px;
+    }
+    th, td{
+      padding:10px 8px;
+      border-bottom: 1px solid rgba(15,23,42,.10);
+      text-align:left;
+      vertical-align:top;
+      font-variant-numeric: tabular-nums;
+    }
+    th{color:var(--muted); font-weight:600;}
+    .score{
+      font-weight:700;
+      font-size:13px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.14);
+      background: #ffffff;
+      display:inline-flex; align-items:center; gap:6px;
+      white-space:nowrap;
+    }
+    .dot{width:8px;height:8px;border-radius:50%;}
+    .barwrap{
+      height:10px;
+      width:100%;
+      background: rgba(15,23,42,.08);
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid rgba(15,23,42,.10);
+    }
+    .bar{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(89,195,195,.95), rgba(255,16,83,.85));
+    }
+    .note{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    .small{font-size:12px;color:var(--muted)}
+    .twoCols{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 540px){
+      .twoCols{grid-template-columns: 1fr;}
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: rgba(15,23,42,.06);
+      border:1px solid rgba(15,23,42,.14);
+      padding:2px 6px;
+      border-radius:8px;
+      color:#0f172a;
+    }
+    .sectionTitle{
+      font-size:14px;
+      color:#0f172a;
+      margin:0 0 8px;
+      letter-spacing:.2px;
+    }
+    .hintBox{
+      border:1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.92);
+      padding:10px 10px;
+      border-radius:14px;
+      margin-bottom:10px;
+    }
+    .hintBox b{color:#0f172a}
+    .tag{
+      display:inline-block;
+      font-size:12px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.96);
+      color: #334155;
+      margin-right:6px;
+      margin-top:6px;
+      white-space:nowrap;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>全球“有生活”打分器（详细说明版）</h1>
+  <div class="sub">
+    你只要填“人能理解的数字”：分钟、小时、0–10 评分、0–100 评分。系统会自动计算并排序。<br/>
+    <span class="tag">生活体验分</span><span class="tag">身份自由分</span><span class="tag">总分</span> 都是 0–100。
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+
+    <!-- LEFT: Parameters -->
+    <section class="card">
+      <div class="hd">
+        <h2>① 模型设置（滑动块可调整）</h2>
+        <span class="pill">默认适合跨国</span>
+      </div>
+      <div class="bd">
+
+        <div class="hintBox">
+          <div class="sectionTitle">先说结论：第一次用怎么填最快？</div>
+          <div class="small">
+            <b>建议顺序：</b>先只改 <span class="kbd">γ</span>（你多重视身份/流动风险），然后逐个城市填右侧表格。<br/>
+            不想纠结参数？就用默认值即可，模型依然能给你非常直观的排序。
+          </div>
+        </div>
+
+        <!-- gamma -->
+        <div class="slider">
+          <div class="top">
+            <div class="name">γ：身份/流动风险的重要程度（0–0.70）</div>
+            <div class="val"><span id="gammaVal"></span></div>
+          </div>
+          <input id="gamma" type="range" min="0" max="0.70" step="0.01" />
+          <div class="ref">
+            参考：0.20（更看重日常生活） · <b>0.35（正常/推荐）</b> · 0.50（身份风险第一优先）<br/>
+            解释：γ 越高，你就越倾向选择“签证稳、能跳槽、能做副业、出入境风险低”的地方。
+          </div>
+          <details>
+            <summary>展开：怎么选 γ？（给你一个很直观的判断法）</summary>
+            <ul>
+              <li>如果你愿意为了“身份稳定”牺牲一些生活便利：把 γ 调到 0.45–0.55。</li>
+              <li>如果你认为“先把生活过好”，身份问题以后再说：γ 0.20–0.30。</li>
+              <li>如果你不确定：用默认 0.35，跑一遍看敏感度，再决定要不要调高。</li>
+            </ul>
+            <p>很多人低估身份风险：它平时看不出来，但一旦触发（公司裁员/签证政策变化/出入境不确定），对生活的破坏是“直接归零”的。</p>
+          </details>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="hintBox">
+          <div class="sectionTitle">通勤与工时“底线常数”（你可以用来表达自己的容忍度）</div>
+          <div class="small">
+            你不需要懂公式。你只要把 <b>舒服</b> 和 <b>不可接受</b> 的阈值设好，系统就会自动把分钟/小时转成 0–100。
+          </div>
+        </div>
+
+        <!-- commute constants -->
+        <div class="twoCols">
+          <div class="slider">
+            <div class="top">
+              <div class="name">通勤：t_good（单程分钟，越小越好）</div>
+              <div class="val"><span id="tGoodVal"></span></div>
+            </div>
+            <input id="tGood" type="range" min="0" max="60" step="1" />
+            <div class="ref">
+              参考：15（很舒服） · <b>30（正常）</b> · 45（偏高）<br/>
+              t_good 的含义：≤ 这个分钟数，你基本不会觉得通勤在“偷你的生活”。
+            </div>
+            <details>
+              <summary>展开：通勤时间怎么统计才“公平”？</summary>
+              <p>用“门到门”时间：从你关门出发到坐到工位（含等车/换乘/找车位/进楼）。如果你是混合办公：</p>
+              <ul>
+                <li>想简单：填“去办公室那天的平均”。</li>
+                <li>更严谨：按每周平均加权（例如每周去 3 天就用 3/5 加权）。</li>
+              </ul>
+            </details>
+          </div>
+
+          <div class="slider">
+            <div class="top">
+              <div class="name">通勤：t_bad（单程分钟，越小越严苛）</div>
+              <div class="val"><span id="tBadVal"></span></div>
+            </div>
+            <input id="tBad" type="range" min="30" max="150" step="1" />
+            <div class="ref">
+              参考：60（很高） · <b>90（不可持续）</b> · 120（极端）<br/>
+              t_bad 的含义：≥ 这个分钟数，通勤对生活的伤害会非常明显。
+            </div>
+          </div>
+        </div>
+
+        <!-- work hour constants -->
+        <div class="twoCols" style="margin-top:10px">
+          <div class="slider">
+            <div class="top">
+              <div class="name">工时：h_good（每周小时，越小越好）</div>
+              <div class="val"><span id="hGoodVal"></span></div>
+            </div>
+            <input id="hGood" type="range" min="30" max="50" step="1" />
+            <div class="ref">
+              参考：40（标准） · <b>45（偏忙）</b> · 50（明显挤压生活）<br/>
+              h_good：≤ 这个工时通常“有生活”更容易成立。
+            </div>
+          </div>
+
+          <div class="slider">
+            <div class="top">
+              <div class="name">工时：h_bad（每周小时，越小越严苛）</div>
+              <div class="val"><span id="hBadVal"></span></div>
+            </div>
+            <input id="hBad" type="range" min="45" max="80" step="1" />
+            <div class="ref">
+              参考：55（高压） · <b>60（红线）</b> · 70（极端）<br/>
+              h_bad：≥ 这个工时通常长期不可持续。
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <!-- LEI weights -->
+        <div class="hintBox">
+          <div class="sectionTitle">生活体验：五项权重（可调）</div>
+          <div class="small">
+            你不需要纠结“应该是多少”。默认权重已经很合理。<br/>
+            只有当你特别在意某项（比如“通勤就是要短”），再把那一项权重调高。
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="slider">
+            <div class="top">
+              <div class="name">通勤权重 wC</div>
+              <div class="val"><span id="wCVal"></span></div>
+            </div>
+            <input id="wC" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.15（一般） · <b>0.22（正常）</b> · 0.35（非常在意通勤）</div>
+            <details>
+              <summary>展开：通勤这项到底在评价什么？</summary>
+              <p>它评价的是：你每天为了“到达工作地点”损失多少时间与精神能量。即使工时一样，通勤差的人通常更难有生活。</p>
+            </details>
+          </div>
+
+          <div class="slider">
+            <div class="top">
+              <div class="name">加班/工时权重 wOT</div>
+              <div class="val"><span id="wOTVal"></span></div>
+            </div>
+            <input id="wOT" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.15（一般） · <b>0.23（正常）</b> · 0.35（非常在意时间主权）</div>
+            <details>
+              <summary>展开：为什么“工时”单独拉出来？</summary>
+              <p>工时是“生活时间被侵占”的最直接指标。很多人以为自己能扛住 55h，但长期看会影响睡眠、运动、社交与心理恢复。</p>
+            </details>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div class="slider">
+            <div class="top">
+              <div class="name">工作压力权重 wWS</div>
+              <div class="val"><span id="wWSVal"></span></div>
+            </div>
+            <input id="wWS" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.12（不太在意） · <b>0.20（正常）</b> · 0.30（对压力很敏感）</div>
+            <details>
+              <summary>展开：压力怎么填才不“玄学”？</summary>
+              <p>用 1–10：1=几乎不想工作，10=长期影响睡眠。你也可以这样判断：</p>
+              <ul>
+                <li>3：下班基本不会想工作</li>
+                <li>5：有压力但可控</li>
+                <li>7：经常焦虑/担心绩效/裁员</li>
+                <li>9：持续压迫感、影响健康</li>
+              </ul>
+            </details>
+          </div>
+
+          <div class="slider">
+            <div class="top">
+              <div class="name">下班放松权重 wRL</div>
+              <div class="val"><span id="wRLVal"></span></div>
+            </div>
+            <input id="wRL" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.10（一般） · <b>0.15（正常）</b> · 0.25（非常在意恢复/生活品质）</div>
+            <details>
+              <summary>展开：下班放松 4 个小项怎么填？（强烈建议照着填）</summary>
+              <ul>
+                <li><b>RL1 自由时间</b>（0–10）：下班后真正自由时间 2h≈4，3h≈6，4h≈8。</li>
+                <li><b>RL2 夜间资源</b>：餐饮/咖啡/文化/音乐是否方便且不贵。</li>
+                <li><b>RL3 运动户外</b>：公园、健身房、骑行路网是否容易到达。</li>
+                <li><b>RL4 主观恢复</b>：你觉得自己下班能不能“回满血”。</li>
+              </ul>
+              <p>每项 2/5/8/10 都很好用：2=很差，5=一般，8=很好，10=极佳。</p>
+            </details>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div class="slider">
+            <div class="top">
+              <div class="name">周末可玩性权重 wWE</div>
+              <div class="val"><span id="wWEVal"></span></div>
+            </div>
+            <input id="wWE" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.12（一般） · <b>0.20（正常）</b> · 0.30（周末就是人生）</div>
+            <details>
+              <summary>展开：周末两项怎么填（时间 + 多样性）？</summary>
+              <p><b>Weekend hours</b>：周末 48 小时里你真正能用来外出/社交/爱好的小时数。</p>
+              <ul>
+                <li>36h：很舒服（两天基本自由）</li>
+                <li>30h：正常</li>
+                <li>24h：偏少（被恢复/杂事占用）</li>
+                <li>16h：很少</li>
+              </ul>
+              <p><b>Variety 0–10</b>：不用“想太复杂”，按可玩类型数量打分：</p>
+              <ul>
+                <li>3：类型少（基本只剩吃饭/商场）</li>
+                <li>5：正常（城市活动+近郊够用）</li>
+                <li>8：丰富（城市文化+自然户外+短途旅行都行）</li>
+                <li>10：极强（随时换玩法，成本不高）</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+
+        <div class="btns" style="margin-top:12px">
+          <button class="primary" id="normalizeLEI">一键：生活体验权重归一化（和=1）</button>
+          <button id="resetDefaults">恢复默认设置</button>
+        </div>
+
+        <div class="sep"></div>
+
+        <!-- IMS weights -->
+        <div class="hintBox">
+          <div class="sectionTitle">身份自由：五项权重（可调）</div>
+          <div class="small">
+            如果你特别在意“副业/跳槽/出入境”，就把相应权重调高。<br/>
+            不确定就用默认，它已经更偏向“跨国实际痛点”。
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="slider">
+            <div class="top">
+              <div class="name">V1 签证/居留稳定 权重 a1</div>
+              <div class="val"><span id="a1Val"></span></div>
+            </div>
+            <input id="a1" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.15（一般） · <b>0.22（正常）</b> · 0.30（非常在意身份稳定）</div>
+          </div>
+
+          <div class="slider">
+            <div class="top">
+              <div class="name">V2 跳槽自由度 权重 a2</div>
+              <div class="val"><span id="a2Val"></span></div>
+            </div>
+            <input id="a2" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.15（一般） · <b>0.22（正常）</b> · 0.30（很想保持选择权）</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div class="slider">
+            <div class="top">
+              <div class="name">V3 副业/自雇自由 权重 a3</div>
+              <div class="val"><span id="a3Val"></span></div>
+            </div>
+            <input id="a3" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.10（一般） · <b>0.18（正常）</b> · 0.30（副业对你很关键）</div>
+          </div>
+
+          <div class="slider">
+            <div class="top">
+              <div class="name">V4 出入境/地缘政治风险 权重 a4</div>
+              <div class="val"><span id="a4Val"></span></div>
+            </div>
+            <input id="a4" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.15（一般） · <b>0.23（正常）</b> · 0.32（需要频繁跨境/很在意风险）</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div class="slider">
+            <div class="top">
+              <div class="name">V5 永居/长期路径 权重 a5</div>
+              <div class="val"><span id="a5Val"></span></div>
+            </div>
+            <input id="a5" type="range" min="0" max="0.60" step="0.01" />
+            <div class="ref">参考：0.10（一般） · <b>0.15（正常）</b> · 0.25（长期定居导向）</div>
+          </div>
+        </div>
+
+        <div class="btns" style="margin-top:12px">
+          <button class="primary" id="normalizeIMS">一键：身份自由权重归一化（和=1）</button>
+        </div>
+
+        <p class="note">
+          <b>最后提醒：</b>右侧城市表里每个输入下面也写了“参考档位”。你基本照着档位填，就能得到非常可靠的相对排序。
+        </p>
+      </div>
+    </section>
+
+    <!-- RIGHT: City inputs + results -->
+    <section class="card">
+      <div class="hd">
+        <h2>② 城市/岗位输入（你填） + ③ 结果（自动）</h2>
+        <div class="headerActions">
+          <button id="addCity" class="primary">+ 添加城市</button>
+          <button id="exportJSON">导出JSON</button>
+          <button id="importJSON">导入JSON</button>
+        </div>
+      </div>
+      <div class="bd">
+
+        <div class="hintBox">
+          <div class="sectionTitle">怎么填最省事（强烈建议按这个顺序）</div>
+          <div class="small">
+            1) 先填：<b>Commute</b>、<b>Hours</b>、<b>Stress</b>（这三项决定“有没有生活”的 70%）<br/>
+            2) 再填：<b>RL 四项</b>（下班恢复能力）和 <b>Weekend</b>（周末）<br/>
+            3) 最后填：<b>V1–V5</b>（身份自由），如果你不确定就按“90/70/50/30”四档先填一个估计值，后续再修正
+          </div>
+          <details style="margin-top:10px">
+            <summary>展开：V1–V5（0–100）怎么打分？给你“很傻瓜”的档位</summary>
+            <p>你只需要选一个“等级区间”就够用了：</p>
+            <ul>
+              <li><b>90–100</b>：非常自由（接近本地人）</li>
+              <li><b>70–89</b>：比较好（流程麻烦但可行）</li>
+              <li><b>50–69</b>：一般（限制明显，需要规划）</li>
+              <li><b>30–49</b>：偏差（容易被卡，风险高）</li>
+              <li><b>0–29</b>：很差（基本不可控/不建议长期赌）</li>
+            </ul>
+            <p><b>每项一句话判断：</b></p>
+            <ul>
+              <li>V1：续签把握大不大？失业后有缓冲期吗？</li>
+              <li>V2：换雇主是否困难？审批是否慢？限制多不多？</li>
+              <li>V3：能不能合法接活/自雇/兼职/创业？税务麻烦到什么程度？</li>
+              <li>V4：再入境是否稳？政策/摩擦会不会突然变？</li>
+              <li>V5：永居/长期身份路径清不清晰？周期是否可接受？</li>
+            </ul>
+          </details>
+        </div>
+
+        <div style="overflow:auto;border-radius:14px;border:1px solid rgba(15,23,42,.12)">
+          <table id="cityTable">
+            <thead>
+              <tr>
+                <th style="min-width:140px">城市</th>
+                <th style="min-width:120px">通勤(min)<div class="small">15舒服/30正常/45偏高/60高/90不可持续</div></th>
+                <th style="min-width:110px">方式加成<div class="small">骑行+15 地铁+10 公交+5 自驾0</div></th>
+                <th style="min-width:105px">工时/周<div class="small">40正常 45偏忙 50挤压 60红线</div></th>
+                <th style="min-width:110px">压力1–10<div class="small">3低 5正常 7高 9极高</div></th>
+                <th style="min-width:240px">下班放松 RL1–4 (0–10)<div class="small">2差 5一般 8很好 10极佳</div></th>
+                <th style="min-width:120px">周末小时<div class="small">36舒服 30正常 24偏少 16少</div></th>
+                <th style="min-width:110px">周末多样性<div class="small">3少 5正常 8丰富 10极强</div></th>
+                <th style="min-width:80px">V1<div class="small">90/70/50/30</div></th>
+                <th style="min-width:80px">V2<div class="small">90/70/50/30</div></th>
+                <th style="min-width:80px">V3<div class="small">90/70/50/30</div></th>
+                <th style="min-width:80px">V4<div class="small">90/70/50/30</div></th>
+                <th style="min-width:80px">V5<div class="small">90/70/50/30</div></th>
+                <th>生活体验分</th>
+                <th>身份自由分</th>
+                <th>总分</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="cityTbody"></tbody>
+          </table>
+        </div>
+
+        <details style="margin-top:12px">
+          <summary>展开：这些分数到底怎么算出来的？（可选，看不懂也没关系）</summary>
+          <p><b>生活体验分</b> = 通勤 + 工时 + 压力 + 放松 + 周末（按权重加权）。<br/>
+          通勤分会把“分钟”换算为 0–100，并叠加你填的“方式加成”。<br/>
+          <b>身份自由分</b> = V1–V5（按权重加权）。<br/>
+          <b>总分</b> = (1-γ)*生活体验分 + γ*身份自由分。</p>
+          <p>你不需要理解公式，只要按参考档位填数字，结果就会很稳定。</p>
+        </details>
+
+        <div class="sep"></div>
+
+        <div class="card" style="background:rgba(255,255,255,.96);border-radius:16px;border:1px solid rgba(15,23,42,.12)">
+          <div class="hd" style="border-bottom:1px solid rgba(15,23,42,.12)">
+            <h2>④ 排名（按“最终分”排序）</h2>
+            <span class="pill" id="rankingHint">0 城市</span>
+          </div>
+          <div class="bd" id="ranking"></div>
+        </div>
+
+        <p class="note">
+          你现在可以先按“经验值”填一版，然后用面试/信息收集逐步把数字改得更准。<br/>
+          这套模型的优势：<b>你能清楚看到一个城市为什么赢/为什么输</b>（是通勤、是加班、还是身份限制）。
+        </p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+  // -------- Utilities --------
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const toNum = (v, fallback=0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const fmt = (x, d=1) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+
+  // -------- Defaults --------
+  const DEFAULTS = {
+    gamma: 0.35,
+    tGood: 15,
+    tBad: 90,
+    hGood: 40,
+    hBad: 60,
+    // 생활体验权重
+    wC: 0.22,
+    wOT: 0.23,
+    wWS: 0.20,
+    wRL: 0.15,
+    wWE: 0.20,
+    // 身份自由权重
+    a1: 0.22,
+    a2: 0.22,
+    a3: 0.18,
+    a4: 0.23,
+    a5: 0.15,
+  };
+
+  // -------- Model math --------
+  function commuteTimeScore(t, tGood, tBad){
+    if (tBad <= tGood) return 0;
+    const raw = 100 * (tBad - t) / (tBad - tGood);
+    return clamp(raw, 0, 100);
+  }
+  function overtimeScore(h, hGood, hBad){
+    if (hBad <= hGood) return 0;
+    const raw = 100 * (hBad - h) / (hBad - hGood);
+    return clamp(raw, 0, 100);
+  }
+  function stressScore(level1to10){
+    const s = clamp(level1to10, 1, 10);
+    return 100 * (1 - (s - 1) / 9);
+  }
+  function relaxScore(r1,r2,r3,r4){
+    const avg = (clamp(r1,0,10)+clamp(r2,0,10)+clamp(r3,0,10)+clamp(r4,0,10))/4;
+    return 10 * avg;
+  }
+  function weekendScore(weekendHours, variety0to10){
+    const we_t = clamp(100 * clamp(weekendHours,0,48) / 48, 0, 100);
+    const we_v = clamp(10 * clamp(variety0to10,0,10), 0, 100);
+    return 0.5 * we_t + 0.5 * we_v;
+  }
+
+  function lei(city, p){
+    const Ct = commuteTimeScore(city.commuteMin, p.tGood, p.tBad);
+    const C = clamp(Ct + city.modeBonus, 0, 100);
+    const OT = overtimeScore(city.hoursWeek, p.hGood, p.hBad);
+    const WS = stressScore(city.stress);
+    const RL = relaxScore(city.rl1, city.rl2, city.rl3, city.rl4);
+    const WE = weekendScore(city.weekendHours, city.variety);
+
+    const sumW = p.wC + p.wOT + p.wWS + p.wRL + p.wWE;
+    const wC = p.wC/sumW, wOT=p.wOT/sumW, wWS=p.wWS/sumW, wRL=p.wRL/sumW, wWE=p.wWE/sumW;
+
+    return wC*C + wOT*OT + wWS*WS + wRL*RL + wWE*WE;
+  }
+
+  function ims(city, p){
+    const v1 = clamp(city.v1,0,100),
+          v2 = clamp(city.v2,0,100),
+          v3 = clamp(city.v3,0,100),
+          v4 = clamp(city.v4,0,100),
+          v5 = clamp(city.v5,0,100);
+
+    const sumA = p.a1 + p.a2 + p.a3 + p.a4 + p.a5;
+    const a1=p.a1/sumA, a2=p.a2/sumA, a3=p.a3/sumA, a4=p.a4/sumA, a5=p.a5/sumA;
+
+    return a1*v1 + a2*v2 + a3*v3 + a4*v4 + a5*v5;
+  }
+
+  function scoreAll(city, p){
+    const L = lei(city, p);
+    const I = ims(city, p);
+    const g = clamp(p.gamma, 0, 0.70);
+    const total = (1-g)*L + g*I;
+
+    // 现在“最终”=“总分”。如果你未来想加入红线惩罚 M，可在这里乘一个 M。
+    const final = total;
+
+    return { life:L, imm:I, total, final };
+  }
+
+  // -------- State --------
+  let params = {...DEFAULTS};
+
+  // 预填你列的城市（你可直接改）
+  let cities = [
+    {name:"Paris", commuteMin:25, modeBonus:10, hoursWeek:42, stress:5, rl1:7, rl2:8, rl3:7, rl4:7, weekendHours:34, variety:9, v1:80, v2:75, v3:80, v4:85, v5:80},
+    {name:"Milan", commuteMin:25, modeBonus:10, hoursWeek:43, stress:5, rl1:7, rl2:8, rl3:7, rl4:7, weekendHours:32, variety:8, v1:75, v2:70, v3:80, v4:85, v5:75},
+    {name:"Singapore", commuteMin:35, modeBonus:10, hoursWeek:50, stress:6, rl1:6, rl2:7, rl3:6, rl4:6, weekendHours:28, variety:7, v1:70, v2:60, v3:55, v4:90, v5:60},
+    {name:"Seattle", commuteMin:35, modeBonus:5, hoursWeek:45, stress:6, rl1:7, rl2:7, rl3:8, rl4:7, weekendHours:30, variety:8, v1:50, v2:50, v3:30, v4:70, v5:40},
+    {name:"NYC", commuteMin:45, modeBonus:10, hoursWeek:48, stress:7, rl1:7, rl2:9, rl3:6, rl4:7, weekendHours:28, variety:10, v1:50, v2:50, v3:30, v4:70, v5:40},
+    {name:"SF", commuteMin:45, modeBonus:5, hoursWeek:48, stress:7, rl1:7, rl2:8, rl3:8, rl4:6, weekendHours:28, variety:9, v1:50, v2:50, v3:30, v4:70, v5:40},
+    {name:"Chicago", commuteMin:40, modeBonus:10, hoursWeek:45, stress:6, rl1:7, rl2:7, rl3:6, rl4:7, weekendHours:30, variety:8, v1:50, v2:50, v3:30, v4:70, v5:40},
+    {name:"Dallas", commuteMin:35, modeBonus:0, hoursWeek:45, stress:6, rl1:7, rl2:6, rl3:6, rl4:7, weekendHours:30, variety:7, v1:50, v2:50, v3:30, v4:70, v5:40},
+  ];
+
+  // -------- DOM bindings --------
+  const bindRange = (id, key, valId, fmtFn=(v)=>v) => {
+    const el = document.getElementById(id);
+    const out = document.getElementById(valId);
+    el.value = params[key];
+    out.textContent = fmtFn(params[key]);
+    el.addEventListener('input', () => {
+      params[key] = toNum(el.value, params[key]);
+      out.textContent = fmtFn(params[key]);
+      renderAll();
+    });
+  };
+
+  function setAllParamControls(){
+    bindRange("gamma","gamma","gammaVal",(v)=>v.toFixed(2));
+    bindRange("tGood","tGood","tGoodVal",(v)=>Math.round(v));
+    bindRange("tBad","tBad","tBadVal",(v)=>Math.round(v));
+    bindRange("hGood","hGood","hGoodVal",(v)=>Math.round(v));
+    bindRange("hBad","hBad","hBadVal",(v)=>Math.round(v));
+
+    bindRange("wC","wC","wCVal",(v)=>v.toFixed(2));
+    bindRange("wOT","wOT","wOTVal",(v)=>v.toFixed(2));
+    bindRange("wWS","wWS","wWSVal",(v)=>v.toFixed(2));
+    bindRange("wRL","wRL","wRLVal",(v)=>v.toFixed(2));
+    bindRange("wWE","wWE","wWEVal",(v)=>v.toFixed(2));
+
+    bindRange("a1","a1","a1Val",(v)=>v.toFixed(2));
+    bindRange("a2","a2","a2Val",(v)=>v.toFixed(2));
+    bindRange("a3","a3","a3Val",(v)=>v.toFixed(2));
+    bindRange("a4","a4","a4Val",(v)=>v.toFixed(2));
+    bindRange("a5","a5","a5Val",(v)=>v.toFixed(2));
+  }
+
+  // -------- City table --------
+  const tbody = document.getElementById("cityTbody");
+  const ranking = document.getElementById("ranking");
+  const rankingHint = document.getElementById("rankingHint");
+
+  function badge(value){
+    const v = clamp(value,0,100);
+    const color = v>=75 ? "var(--good)" : (v>=55 ? "var(--warn)" : "var(--bad)");
+    return `<span class="score"><span class="dot" style="background:${color}"></span>${fmt(v,1)}</span>`;
+  }
+
+  function cityRow(i, city){
+    const res = scoreAll(city, params);
+    const rlAvg = (clamp(city.rl1,0,10)+clamp(city.rl2,0,10)+clamp(city.rl3,0,10)+clamp(city.rl4,0,10))/4;
+
+    return `
+      <tr>
+        <td><input type="text" value="${city.name}" data-i="${i}" data-k="name" /></td>
+        <td><input type="number" min="0" max="240" step="1" value="${city.commuteMin}" data-i="${i}" data-k="commuteMin" /></td>
+        <td><input type="number" min="-20" max="20" step="1" value="${city.modeBonus}" data-i="${i}" data-k="modeBonus" /></td>
+        <td><input type="number" min="0" max="100" step="1" value="${city.hoursWeek}" data-i="${i}" data-k="hoursWeek" /></td>
+        <td><input type="number" min="1" max="10" step="1" value="${city.stress}" data-i="${i}" data-k="stress" /></td>
+        <td>
+          <div class="small">RL 平均：${fmt(rlAvg,1)}（每项0–10）</div>
+          <div class="row" style="gap:6px;flex-wrap:nowrap">
+            <input type="number" min="0" max="10" step="1" value="${city.rl1}" data-i="${i}" data-k="rl1" title="RL1 自由时间" />
+            <input type="number" min="0" max="10" step="1" value="${city.rl2}" data-i="${i}" data-k="rl2" title="RL2 夜间资源" />
+            <input type="number" min="0" max="10" step="1" value="${city.rl3}" data-i="${i}" data-k="rl3" title="RL3 运动户外" />
+            <input type="number" min="0" max="10" step="1" value="${city.rl4}" data-i="${i}" data-k="rl4" title="RL4 主观恢复" />
+          </div>
+        </td>
+        <td><input type="number" min="0" max="48" step="1" value="${city.weekendHours}" data-i="${i}" data-k="weekendHours" /></td>
+        <td><input type="number" min="0" max="10" step="1" value="${city.variety}" data-i="${i}" data-k="variety" /></td>
+
+        <td><input type="number" min="0" max="100" step="1" value="${city.v1}" data-i="${i}" data-k="v1" /></td>
+        <td><input type="number" min="0" max="100" step="1" value="${city.v2}" data-i="${i}" data-k="v2" /></td>
+        <td><input type="number" min="0" max="100" step="1" value="${city.v3}" data-i="${i}" data-k="v3" /></td>
+        <td><input type="number" min="0" max="100" step="1" value="${city.v4}" data-i="${i}" data-k="v4" /></td>
+        <td><input type="number" min="0" max="100" step="1" value="${city.v5}" data-i="${i}" data-k="v5" /></td>
+
+        <td>${badge(res.life)}</td>
+        <td>${badge(res.imm)}</td>
+        <td>${badge(res.total)}</td>
+        <td><button class="danger" data-del="${i}" title="删除">删除</button></td>
+      </tr>
+    `;
+  }
+
+  function renderTable(){
+    tbody.innerHTML = cities.map((c,i)=>cityRow(i,c)).join("");
+
+    tbody.querySelectorAll("input").forEach(inp=>{
+      inp.addEventListener("input", ()=>{
+        const i = Number(inp.dataset.i);
+        const k = inp.dataset.k;
+        if (!Number.isFinite(i) || !k) return;
+        let v = inp.value;
+        if (k !== "name") v = toNum(v, 0);
+        cities[i][k] = v;
+        renderAll(false);
+      });
+    });
+
+    tbody.querySelectorAll("button[data-del]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const idx = Number(btn.dataset.del);
+        cities.splice(idx,1);
+        renderAll(true);
+      });
+    });
+  }
+
+  function renderRanking(){
+    const scored = cities.map(c=>{
+      const s = scoreAll(c, params);
+      return { name:c.name, ...s };
+    }).sort((a,b)=>b.final-a.final);
+
+    rankingHint.textContent = `${scored.length} 城市`;
+
+    ranking.innerHTML = scored.map((x, rank)=>{
+      const v = clamp(x.final,0,100);
+      const color = v>=75 ? "var(--good)" : (v>=55 ? "var(--warn)" : "var(--bad)");
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid rgba(15,23,42,.08)">
+          <div style="width:26px;color:var(--muted);font-variant-numeric:tabular-nums">${rank+1}</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;gap:10px">
+              <div style="font-weight:700">${x.name}</div>
+              <div class="score"><span class="dot" style="background:${color}"></span>${fmt(v,1)}</div>
+            </div>
+            <div class="small">生活体验 ${fmt(x.life,1)} · 身份自由 ${fmt(x.imm,1)} · 总分 ${fmt(x.total,1)}</div>
+            <div class="barwrap" style="margin-top:6px"><div class="bar" style="width:${v}%"></div></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderAll(rebuildTable=true){
+    params.tGood = clamp(params.tGood, 0, 60);
+    params.tBad  = clamp(params.tBad, 30, 150);
+    params.hGood = clamp(params.hGood, 30, 50);
+    params.hBad  = clamp(params.hBad, 45, 80);
+    if (params.tBad <= params.tGood) params.tBad = params.tGood + 1;
+    if (params.hBad <= params.hGood) params.hBad = params.hGood + 1;
+
+    if (rebuildTable) renderTable();
+    renderRanking();
+  }
+
+  // -------- Buttons --------
+  document.getElementById("normalizeLEI").addEventListener("click", ()=>{
+    const sum = params.wC + params.wOT + params.wWS + params.wRL + params.wWE;
+    if (sum <= 0) return;
+    params.wC/=sum; params.wOT/=sum; params.wWS/=sum; params.wRL/=sum; params.wWE/=sum;
+    renderAll(true);
+  });
+
+  document.getElementById("normalizeIMS").addEventListener("click", ()=>{
+    const sum = params.a1 + params.a2 + params.a3 + params.a4 + params.a5;
+    if (sum <= 0) return;
+    params.a1/=sum; params.a2/=sum; params.a3/=sum; params.a4/=sum; params.a5/=sum;
+    renderAll(true);
+  });
+
+  document.getElementById("resetDefaults").addEventListener("click", ()=>{
+    params = {...DEFAULTS};
+    // sync UI sliders text
+    const sync = (id, key, valId, fmtFn=(v)=>v) => {
+      const el = document.getElementById(id);
+      const out = document.getElementById(valId);
+      if (el) el.value = params[key];
+      if (out) out.textContent = fmtFn(params[key]);
+    };
+    sync("gamma","gamma","gammaVal",(v)=>v.toFixed(2));
+    sync("tGood","tGood","tGoodVal",(v)=>Math.round(v));
+    sync("tBad","tBad","tBadVal",(v)=>Math.round(v));
+    sync("hGood","hGood","hGoodVal",(v)=>Math.round(v));
+    sync("hBad","hBad","hBadVal",(v)=>Math.round(v));
+
+    sync("wC","wC","wCVal",(v)=>v.toFixed(2));
+    sync("wOT","wOT","wOTVal",(v)=>v.toFixed(2));
+    sync("wWS","wWS","wWSVal",(v)=>v.toFixed(2));
+    sync("wRL","wRL","wRLVal",(v)=>v.toFixed(2));
+    sync("wWE","wWE","wWEVal",(v)=>v.toFixed(2));
+
+    sync("a1","a1","a1Val",(v)=>v.toFixed(2));
+    sync("a2","a2","a2Val",(v)=>v.toFixed(2));
+    sync("a3","a3","a3Val",(v)=>v.toFixed(2));
+    sync("a4","a4","a4Val",(v)=>v.toFixed(2));
+    sync("a5","a5","a5Val",(v)=>v.toFixed(2));
+
+    renderAll(true);
+  });
+
+  document.getElementById("addCity").addEventListener("click", ()=>{
+    cities.push({
+      name:"New City",
+      commuteMin:30, modeBonus:0, hoursWeek:45, stress:6,
+      rl1:6, rl2:6, rl3:6, rl4:6,
+      weekendHours:28, variety:7,
+      v1:60, v2:60, v3:50, v4:70, v5:50
+    });
+    renderAll(true);
+  });
+
+  document.getElementById("exportJSON").addEventListener("click", ()=>{
+    const payload = { params, cities };
+    const text = JSON.stringify(payload, null, 2);
+    navigator.clipboard.writeText(text).then(()=>{
+      alert("已复制到剪贴板：JSON（params + cities）");
+    }).catch(()=>{
+      prompt("复制下面JSON：", text);
+    });
+  });
+
+  document.getElementById("importJSON").addEventListener("click", ()=>{
+    const text = prompt("粘贴你之前导出的 JSON：");
+    if (!text) return;
+    try{
+      const obj = JSON.parse(text);
+      if (obj.params) params = {...params, ...obj.params};
+      if (Array.isArray(obj.cities)) cities = obj.cities;
+      renderAll(true);
+    }catch(e){
+      alert("JSON 解析失败：请确认格式正确。");
+    }
+  });
+
+  // -------- Init --------
+  setAllParamControls();
+  renderAll(true);
+</script>
+</body>
+</html>
