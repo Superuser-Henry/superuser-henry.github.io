@@ -1,0 +1,441 @@
+.smartadsb-app {
+  min-height: 100vh;
+  padding: 32px 18px 48px;
+  background:
+    radial-gradient(circle at top left, rgba(235, 149, 52, 0.18), transparent 35%),
+    radial-gradient(circle at right center, rgba(0, 108, 117, 0.15), transparent 32%),
+    linear-gradient(180deg, #f6f4ed 0%, #ebe7da 100%);
+  color: #13242b;
+  font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  box-sizing: border-box;
+}
+
+.smartadsb-app *,
+.smartadsb-app *::before,
+.smartadsb-app *::after {
+  box-sizing: inherit;
+}
+
+.smartadsb-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.smartadsb-hero {
+  margin-bottom: 24px;
+  padding: 28px;
+  border: 1px solid rgba(19, 36, 43, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 250, 240, 0.78);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 18px 50px rgba(19, 36, 43, 0.08);
+}
+
+.smartadsb-eyebrow {
+  margin: 0 0 8px;
+  color: #8a4a07;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.smartadsb-heading {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.smartadsb-intro {
+  max-width: 58rem;
+  margin: 14px 0 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: #29424a;
+}
+
+.smartadsb-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 410px) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.smartadsb-panel {
+  border: 1px solid rgba(19, 36, 43, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 28px rgba(19, 36, 43, 0.06);
+}
+
+.smartadsb-panel-upload,
+.smartadsb-panel-report,
+.smartadsb-panel-debug,
+.smartadsb-panel-visual {
+  padding: 22px;
+}
+
+.smartadsb-panel-upload,
+.smartadsb-panel-visual {
+  min-height: 520px;
+  height: 100%;
+}
+
+.smartadsb-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.smartadsb-section-title {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.smartadsb-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.smartadsb-file-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(19, 36, 43, 0.18);
+  border-radius: 14px;
+  background: #faf7f0;
+  font: inherit;
+  color: inherit;
+}
+
+.smartadsb-help {
+  margin: 12px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #4d6268;
+}
+
+.smartadsb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.smartadsb-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #9e4f04 0%, #cb6c0f 100%);
+  color: #fffdf9;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 12px 22px rgba(158, 79, 4, 0.25);
+}
+
+.smartadsb-button-secondary {
+  background: linear-gradient(135deg, #275f68 0%, #3f8a8d 100%);
+  box-shadow: 0 12px 22px rgba(39, 95, 104, 0.22);
+}
+
+.smartadsb-button-secondary:hover,
+.smartadsb-button-secondary:focus-visible {
+  box-shadow: 0 16px 28px rgba(39, 95, 104, 0.28);
+}
+
+.smartadsb-button:hover,
+.smartadsb-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(158, 79, 4, 0.3);
+}
+
+.smartadsb-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
+.smartadsb-session-picker {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(19, 36, 43, 0.1);
+}
+
+.smartadsb-select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(19, 36, 43, 0.18);
+  border-radius: 14px;
+  background: #faf7f0;
+  font: inherit;
+  color: inherit;
+}
+
+.smartadsb-select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.smartadsb-help-compact {
+  margin-top: 8px;
+}
+
+.smartadsb-status {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f4efe3;
+  color: #304950;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.smartadsb-status[data-variant="error"] {
+  background: #ffe7df;
+  color: #8a2f16;
+}
+
+.smartadsb-status[data-variant="success"] {
+  background: #e8f7ef;
+  color: #1d5c38;
+}
+
+.smartadsb-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e8f2f3;
+  color: #2b5960;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.smartadsb-report-output {
+  min-height: 320px;
+  margin: 0;
+  padding: 18px;
+  overflow: auto;
+  border-radius: 16px;
+  background: #14272e;
+  color: #eef7f5;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.smartadsb-panel-visual {
+  display: flex;
+  flex-direction: column;
+}
+
+.smartadsb-visual-meta {
+  margin-bottom: 14px;
+  color: #36545c;
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.smartadsb-visual-controls {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(233, 244, 246, 0.9);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.smartadsb-control-block {
+  min-width: 0;
+}
+
+.smartadsb-visual-label {
+  margin-bottom: 10px;
+}
+
+.smartadsb-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.smartadsb-slider {
+  width: 100%;
+  accent-color: #58bde8;
+  cursor: pointer;
+}
+
+.smartadsb-slider-value {
+  min-width: 2.8rem;
+  color: #204852;
+  font-weight: 700;
+  text-align: right;
+}
+
+.smartadsb-visual-stage {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  gap: 14px;
+  min-height: 420px;
+}
+
+.smartadsb-canvas-shell {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top, rgba(159, 226, 255, 0.22), transparent 35%),
+    linear-gradient(180deg, #0e1c24 0%, #152b34 45%, #091219 100%);
+  box-shadow: inset 0 0 0 1px rgba(159, 226, 255, 0.08);
+}
+
+.smartadsb-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+}
+
+.smartadsb-vertical-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 54px;
+  min-width: 54px;
+  padding: 14px 6px 10px;
+  border-radius: 18px;
+  background: rgba(9, 18, 25, 0.48);
+  backdrop-filter: blur(4px);
+}
+
+.smartadsb-vertical-label {
+  color: rgba(229, 247, 255, 0.9);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.smartadsb-slider-vertical {
+  width: 240px;
+  height: 18px;
+  margin: 0;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.smartadsb-slider-value-vertical {
+  min-width: 0;
+  color: rgba(229, 247, 255, 0.96);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.smartadsb-canvas-overlay {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(10, 20, 26, 0.55);
+  color: rgba(229, 247, 255, 0.88);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.smartadsb-debug {
+  width: 100%;
+}
+
+.smartadsb-debug-summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.smartadsb-debug-output {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f7f6f1;
+  color: #22393f;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .smartadsb-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .smartadsb-panel-visual {
+    min-height: 400px;
+  }
+
+  .smartadsb-visual-stage {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .smartadsb-canvas-shell {
+    min-height: 320px;
+  }
+
+  .smartadsb-canvas {
+    height: 320px;
+    min-height: 320px;
+  }
+
+  .smartadsb-vertical-control {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+
+  .smartadsb-vertical-label {
+    writing-mode: initial;
+    transform: none;
+  }
+
+  .smartadsb-slider-vertical {
+    width: 100%;
+    max-width: 240px;
+    transform: none;
+  }
+
+  .smartadsb-panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 980px) {
+  .smartadsb-visual-controls {
+    grid-template-columns: 1fr;
+  }
+}

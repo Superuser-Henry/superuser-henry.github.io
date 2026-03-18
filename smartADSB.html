@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>smartADSB</title>
+  <link rel="stylesheet" href="smartADSB.css">
+</head>
+<body>
+  <main class="smartadsb-app">
+    <section class="smartadsb-shell">
+      <header class="smartadsb-hero">
+        <p class="smartadsb-eyebrow">Local Browser Analysis</p>
+        <h1 class="smartadsb-heading">smartADSB</h1>
+        <p class="smartadsb-intro">
+          Analyze ADS-B CSV files from flight training operations directly in the browser. Files stay on
+          your machine while the app parses the data, classifies flight states, and produces a readable
+          report.
+        </p>
+      </header>
+
+      <section class="smartadsb-grid" aria-label="Analysis controls and results">
+        <div class="smartadsb-panel smartadsb-panel-upload">
+            <h2 class="smartadsb-section-title">Upload CSV</h2>
+            <label class="smartadsb-label" for="smartadsb-file-input">ADS-B CSV file</label>
+            <input
+              class="smartadsb-file-input"
+              id="smartadsb-file-input"
+              type="file"
+              accept=".csv,text/csv"
+            >
+            <p class="smartadsb-help">
+              Recognizes common aliases for time, latitude, longitude, altitude, speed, track, and combined
+              position columns.
+            </p>
+            <div class="smartadsb-actions">
+              <button class="smartadsb-button" id="smartadsb-detect-button" type="button">Detect Flight Windows</button>
+              <button class="smartadsb-button smartadsb-button-secondary" id="smartadsb-analyze-button" type="button" disabled>Analyze Selected Window</button>
+            </div>
+            <div class="smartadsb-session-picker">
+              <label class="smartadsb-label" for="smartadsb-session-select">Detected flight window</label>
+              <select class="smartadsb-select" id="smartadsb-session-select" disabled>
+                <option value="">Upload a file and detect flight windows first</option>
+              </select>
+              <p class="smartadsb-help smartadsb-help-compact" id="smartadsb-session-summary">
+                smartADSB will split day-long files into candidate flight windows, then analyze only the selected window.
+              </p>
+            </div>
+            <div
+              class="smartadsb-status"
+              id="smartadsb-status"
+              role="status"
+              aria-live="polite"
+            >
+              Select a CSV file, detect flight windows, choose a window, then run analysis. The selected
+              window will render on the right before the report is generated.
+            </div>
+        </div>
+
+        <div class="smartadsb-panel smartadsb-panel-visual">
+          <div class="smartadsb-panel-header">
+            <h2 class="smartadsb-section-title">Selected Flight Window</h2>
+            <span class="smartadsb-badge">3D trajectory</span>
+          </div>
+          <div class="smartadsb-visual-meta" id="smartadsb-visual-meta">
+            No flight window selected yet. Detect sessions and choose one to render the trajectory.
+          </div>
+          <div class="smartadsb-visual-controls">
+            <div class="smartadsb-control-block">
+              <label class="smartadsb-label smartadsb-visual-label" for="smartadsb-view-angle-slider">
+                View Angle
+              </label>
+              <div class="smartadsb-slider-row">
+                <input
+                  class="smartadsb-slider"
+                  id="smartadsb-view-angle-slider"
+                  type="range"
+                  min="0"
+                  max="45"
+                  step="1"
+                  value="20"
+                >
+                <span class="smartadsb-slider-value" id="smartadsb-view-angle-slider-value">20%</span>
+              </div>
+            </div>
+            <div class="smartadsb-control-block">
+              <label class="smartadsb-label smartadsb-visual-label" for="smartadsb-zoom-slider">
+                Zoom
+              </label>
+              <div class="smartadsb-slider-row">
+                <input
+                  class="smartadsb-slider"
+                  id="smartadsb-zoom-slider"
+                  type="range"
+                  min="70"
+                  max="220"
+                  step="1"
+                  value="100"
+                >
+                <span class="smartadsb-slider-value" id="smartadsb-zoom-slider-value">100%</span>
+              </div>
+            </div>
+          </div>
+          <div class="smartadsb-visual-stage">
+            <div class="smartadsb-canvas-shell">
+              <canvas class="smartadsb-canvas" id="smartadsb-trajectory-canvas" aria-label="3D flight trajectory view"></canvas>
+              <div class="smartadsb-canvas-overlay">Top-down orbit view · 15s/rev</div>
+            </div>
+            <div class="smartadsb-vertical-control">
+              <label class="smartadsb-vertical-label" for="smartadsb-height-exaggeration-slider">
+                Height
+              </label>
+              <input
+                class="smartadsb-slider smartadsb-slider-vertical"
+                id="smartadsb-height-exaggeration-slider"
+                type="range"
+                min="1"
+                max="10"
+                step="0.1"
+                value="6"
+                aria-label="Height exaggeration"
+              >
+              <span class="smartadsb-slider-value smartadsb-slider-value-vertical" id="smartadsb-height-exaggeration-slider-value">6.0x</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="smartadsb-panel smartadsb-panel-report">
+        <div class="smartadsb-panel-header">
+          <h2 class="smartadsb-section-title">Report</h2>
+          <span class="smartadsb-badge">Human-readable output</span>
+        </div>
+        <pre class="smartadsb-report-output" id="smartadsb-report-output">Flight Analysis Summary
+Time range (Local): --
+Time range (UTC): --
+Duration: --
+Ground segments: --
+Climb segments: --
+Level segments: --
+Descent segments: --
+Likely touch-and-go candidates: --
+
+Interpretation
+Upload a CSV, detect flight windows, choose one time range, and run analysis to replace this placeholder with a live training-flight summary.
+
+Data Quality Notes
+Column mapping, dropped rows, and confidence notes will appear here after analysis.</pre>
+      </section>
+
+      <section class="smartadsb-panel smartadsb-panel-debug">
+        <details class="smartadsb-debug">
+          <summary class="smartadsb-debug-summary">Debug summary</summary>
+          <div class="smartadsb-debug-output" id="smartadsb-debug-output">
+            No analysis has been run yet.
+          </div>
+        </details>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="js/smartADSB-main.js"></script>
+</body>
+</html>
