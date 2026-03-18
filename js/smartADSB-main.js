@@ -18,6 +18,9 @@ function $(id) {
 
 function setStatus(message, variant = "neutral") {
   const statusEl = $("smartadsb-status");
+  if (!statusEl) {
+    return;
+  }
   statusEl.textContent = message;
   if (variant === "neutral") {
     statusEl.removeAttribute("data-variant");
@@ -107,20 +110,6 @@ function setMultiplierSliderValueLabel(elementId, value) {
   }
 }
 
-function median(values) {
-  const filtered = values
-    .filter((value) => Number.isFinite(value))
-    .sort((left, right) => left - right);
-  if (filtered.length === 0) {
-    return null;
-  }
-
-  const midpoint = Math.floor(filtered.length / 2);
-  return filtered.length % 2 === 0
-    ? (filtered[midpoint - 1] + filtered[midpoint]) / 2
-    : filtered[midpoint];
-}
-
 function createCanvasMessage(canvas, message) {
   const context = canvas.getContext("2d");
   if (!context) {
@@ -130,7 +119,7 @@ function createCanvasMessage(canvas, message) {
   const width = canvas.width;
   const height = canvas.height;
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#0d1a22";
+  context.fillStyle = "#a0a7ba";
   context.fillRect(0, 0, width, height);
   context.fillStyle = "rgba(230, 245, 252, 0.84)";
   context.font = `${Math.max(14, Math.round(width / 38))}px Avenir Next, sans-serif`;
@@ -167,17 +156,52 @@ function prepareTrajectoryGeometry(points) {
     return null;
   }
 
-  const centerLat = median(usablePoints.map((point) => point.lat));
-  const centerLon = median(usablePoints.map((point) => point.lon));
+  const geographicBounds = usablePoints.reduce(
+    (bounds, point) => ({
+      minLat: Math.min(bounds.minLat, point.lat),
+      maxLat: Math.max(bounds.maxLat, point.lat),
+      minLon: Math.min(bounds.minLon, point.lon),
+      maxLon: Math.max(bounds.maxLon, point.lon)
+    }),
+    {
+      minLat: Number.POSITIVE_INFINITY,
+      maxLat: Number.NEGATIVE_INFINITY,
+      minLon: Number.POSITIVE_INFINITY,
+      maxLon: Number.NEGATIVE_INFINITY
+    }
+  );
+  const centerLat = (geographicBounds.minLat + geographicBounds.maxLat) / 2;
+  const centerLon = (geographicBounds.minLon + geographicBounds.maxLon) / 2;
   const firstAltitudeFt = usablePoints[0].altFtSmoothed ?? usablePoints[0].altFt ?? 0;
   const latScaleMeters = 111320;
   const lonScaleMeters = 111320 * Math.cos((centerLat * Math.PI) / 180);
 
-  const samples = usablePoints.map((point) => ({
+  const rawSamples = usablePoints.map((point) => ({
     x: (point.lon - centerLon) * lonScaleMeters,
     y: (point.lat - centerLat) * latScaleMeters,
     z: ((point.altFtSmoothed ?? point.altFt ?? firstAltitudeFt) - firstAltitudeFt) * 0.3048,
     time: point.time
+  }));
+  const projectedBounds = rawSamples.reduce(
+    (bounds, sample) => ({
+      minX: Math.min(bounds.minX, sample.x),
+      maxX: Math.max(bounds.maxX, sample.x),
+      minY: Math.min(bounds.minY, sample.y),
+      maxY: Math.max(bounds.maxY, sample.y)
+    }),
+    {
+      minX: Number.POSITIVE_INFINITY,
+      maxX: Number.NEGATIVE_INFINITY,
+      minY: Number.POSITIVE_INFINITY,
+      maxY: Number.NEGATIVE_INFINITY
+    }
+  );
+  const projectedCenterX = (projectedBounds.minX + projectedBounds.maxX) / 2;
+  const projectedCenterY = (projectedBounds.minY + projectedBounds.maxY) / 2;
+  const samples = rawSamples.map((sample) => ({
+    ...sample,
+    x: sample.x - projectedCenterX,
+    y: sample.y - projectedCenterY
   }));
 
   const horizontalRadius = Math.max(
@@ -318,7 +342,7 @@ function drawTrajectoryFrame(timestampMs) {
   }
 
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#0b1820";
+  context.fillStyle = "#a0a7ba";
   context.fillRect(0, 0, width, height);
 
   const orbitAngleRad = ((timestampMs % 15000) / 15000) * Math.PI * 2;

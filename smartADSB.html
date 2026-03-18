@@ -35,7 +35,6 @@
             </p>
             <div class="smartadsb-actions">
               <button class="smartadsb-button" id="smartadsb-detect-button" type="button">Detect Flight Windows</button>
-              <button class="smartadsb-button smartadsb-button-secondary" id="smartadsb-analyze-button" type="button" disabled>Analyze Selected Window</button>
             </div>
             <div class="smartadsb-session-picker">
               <label class="smartadsb-label" for="smartadsb-session-select">Detected flight window</label>
@@ -45,15 +44,9 @@
               <p class="smartadsb-help smartadsb-help-compact" id="smartadsb-session-summary">
                 smartADSB will split day-long files into candidate flight windows, then analyze only the selected window.
               </p>
-            </div>
-            <div
-              class="smartadsb-status"
-              id="smartadsb-status"
-              role="status"
-              aria-live="polite"
-            >
-              Select a CSV file, detect flight windows, choose a window, then run analysis. The selected
-              window will render on the right before the report is generated.
+              <div class="smartadsb-actions">
+                <button class="smartadsb-button smartadsb-button-secondary" id="smartadsb-analyze-button" type="button" disabled>Analyze Selected Window</button>
+              </div>
             </div>
         </div>
 

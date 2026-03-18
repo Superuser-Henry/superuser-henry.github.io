@@ -187,27 +187,6 @@
   margin-top: 8px;
 }
 
-.smartadsb-status {
-  margin-top: 16px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: #f4efe3;
-  color: #304950;
-  font-size: 0.94rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-}
-
-.smartadsb-status[data-variant="error"] {
-  background: #ffe7df;
-  color: #8a2f16;
-}
-
-.smartadsb-status[data-variant="success"] {
-  background: #e8f7ef;
-  color: #1d5c38;
-}
-
 .smartadsb-badge {
   display: inline-flex;
   align-items: center;
