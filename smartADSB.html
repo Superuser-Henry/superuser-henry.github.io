@@ -13,9 +13,9 @@
         <p class="smartadsb-eyebrow">Local Browser Analysis</p>
         <h1 class="smartadsb-heading">smartADSB</h1>
         <p class="smartadsb-intro">
-          Analyze ADS-B CSV files from flight training operations directly in the browser. Files stay on
-          your machine while the app parses the data, classifies flight states, and produces a readable
-          report.
+          Drop in an ADS-B CSV and explore the flight right in your browser. smartADSB keeps everything on
+          your machine while it sorts the data into flight windows, maps out the trajectory, and helps you
+          inspect what happened in a more approachable way.
         </p>
       </header>
 
@@ -29,21 +29,17 @@
               type="file"
               accept=".csv,text/csv"
             >
-            <p class="smartadsb-help">
-              Recognizes common aliases for time, latitude, longitude, altitude, speed, track, and combined
-              position columns.
-            </p>
             <div class="smartadsb-actions">
               <button class="smartadsb-button" id="smartadsb-detect-button" type="button">Detect Flight Windows</button>
             </div>
             <div class="smartadsb-session-picker">
               <label class="smartadsb-label" for="smartadsb-session-select">Detected flight window</label>
-              <select class="smartadsb-select" id="smartadsb-session-select" disabled>
-                <option value="">Upload a file and detect flight windows first</option>
-              </select>
               <p class="smartadsb-help smartadsb-help-compact" id="smartadsb-session-summary">
                 smartADSB will split day-long files into candidate flight windows, then analyze only the selected window.
               </p>
+              <select class="smartadsb-select" id="smartadsb-session-select" disabled>
+                <option value="">Upload a file and detect flight windows first</option>
+              </select>
               <div class="smartadsb-actions">
                 <button class="smartadsb-button smartadsb-button-secondary" id="smartadsb-analyze-button" type="button" disabled>Analyze Selected Window</button>
               </div>
@@ -122,7 +118,6 @@
       <section class="smartadsb-panel smartadsb-panel-report">
         <div class="smartadsb-panel-header">
           <h2 class="smartadsb-section-title">Report</h2>
-          <span class="smartadsb-badge">Human-readable output</span>
         </div>
         <pre class="smartadsb-report-output" id="smartadsb-report-output">Flight Analysis Summary
 Time range (Local): --

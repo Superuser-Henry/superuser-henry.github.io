@@ -119,7 +119,7 @@ function createCanvasMessage(canvas, message) {
   const width = canvas.width;
   const height = canvas.height;
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#a0a7ba";
+  context.fillStyle = "#c1c6cb";
   context.fillRect(0, 0, width, height);
   context.fillStyle = "rgba(230, 245, 252, 0.84)";
   context.font = `${Math.max(14, Math.round(width / 38))}px Avenir Next, sans-serif`;
@@ -300,7 +300,6 @@ function ensureTrajectoryViewState(canvasMetrics) {
     return cache;
   }
 
-  const pitchFactor = 0.1;
   const altitudeFactor = 0.78 * appState.heightExaggerationFactor;
   const width = canvasMetrics.width;
   const height = canvasMetrics.height;
@@ -325,7 +324,7 @@ function drawTrajectoryFrame(timestampMs) {
   const geometry = appState.trajectoryGeometry;
   const canvas = $("smartadsb-trajectory-canvas");
   if (!geometry) {
-    const { width, height } = resizeTrajectoryCanvas();
+    resizeTrajectoryCanvas();
     createCanvasMessage(canvas, "Select a flight window to render the trajectory.");
     appState.animationFrameId = window.requestAnimationFrame(drawTrajectoryFrame);
     return;
@@ -342,7 +341,7 @@ function drawTrajectoryFrame(timestampMs) {
   }
 
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#a0a7ba";
+  context.fillStyle = "#c1c6cb";
   context.fillRect(0, 0, width, height);
 
   const orbitAngleRad = ((timestampMs % 15000) / 15000) * Math.PI * 2;
@@ -590,6 +589,11 @@ async function detectSessionsFromFile() {
   const detectButton = $("smartadsb-detect-button");
   const reportEl = $("smartadsb-report-output");
   const file = fileInput.files?.[0];
+  const handleFailure = (message) => {
+    reportEl.textContent = "Analysis did not complete.\n\nReview the error message above, then try another CSV or adjust the input data.";
+    renderDebugSummary(`Last error:\n${message}`);
+    setStatus(message || "Analysis failed due to malformed input.", "error");
+  };
 
   if (!file) {
     setStatus("Select a CSV file before detecting flight windows.", "error");
@@ -606,9 +610,10 @@ async function detectSessionsFromFile() {
     const preprocessed = preprocessPoints(parsed.points, SMART_ADSB_CONFIG.preprocess);
 
     if (preprocessed.points.length < SMART_ADSB_CONFIG.parser.minUsablePoints) {
-      throw new Error(
+      handleFailure(
         `Only ${preprocessed.points.length} usable points remained after cleaning. At least ${SMART_ADSB_CONFIG.parser.minUsablePoints} are required.`
       );
+      return;
     }
 
     const featured = computeFeatures(preprocessed.points, SMART_ADSB_CONFIG.features);
@@ -676,9 +681,7 @@ async function detectSessionsFromFile() {
       "success"
     );
   } catch (error) {
-    reportEl.textContent = "Analysis did not complete.\n\nReview the error message above, then try another CSV or adjust the input data.";
-    renderDebugSummary(`Last error:\n${error.message}`);
-    setStatus(error.message || "Analysis failed due to malformed input.", "error");
+    handleFailure(error.message);
   } finally {
     detectButton.disabled = false;
   }
@@ -692,6 +695,11 @@ function getSelectedSession() {
 async function runAnalysis() {
   const reportEl = $("smartadsb-report-output");
   const analyzeButton = $("smartadsb-analyze-button");
+  const handleFailure = (message) => {
+    reportEl.textContent = "Analysis did not complete.\n\nReview the error message above, then try another CSV or adjust the selected time range.";
+    renderDebugSummary(`Last error:\n${message}`);
+    setStatus(message || "Analysis failed due to malformed input.", "error");
+  };
 
   if (!appState.preprocessed || !appState.parsed) {
     setStatus("Detect flight windows before running analysis.", "error");
@@ -716,9 +724,10 @@ async function runAnalysis() {
     );
 
     if (sessionPoints.length < SMART_ADSB_CONFIG.parser.minUsablePoints) {
-      throw new Error(
+      handleFailure(
         `The selected flight window only contains ${sessionPoints.length} usable points. At least ${SMART_ADSB_CONFIG.parser.minUsablePoints} are required.`
       );
+      return;
     }
 
     const featured = computeFeatures(sessionPoints, SMART_ADSB_CONFIG.features);
@@ -752,9 +761,7 @@ async function runAnalysis() {
       "success"
     );
   } catch (error) {
-    reportEl.textContent = "Analysis did not complete.\n\nReview the error message above, then try another CSV or adjust the selected time range.";
-    renderDebugSummary(`Last error:\n${error.message}`);
-    setStatus(error.message || "Analysis failed due to malformed input.", "error");
+    handleFailure(error.message);
   } finally {
     analyzeButton.disabled = false;
   }

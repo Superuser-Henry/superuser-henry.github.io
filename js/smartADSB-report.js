@@ -269,7 +269,6 @@ export function generateTextReport(analysis) {
     classifiedPoints,
     segments,
     events,
-    selectedSession,
     timeContext = inferAnalysisTimeContext(classifiedPoints)
   } = analysis;
 

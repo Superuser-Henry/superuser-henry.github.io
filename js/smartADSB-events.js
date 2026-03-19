@@ -270,7 +270,7 @@ function classifyLowAltitudeManeuvers(windows, config) {
     description: "Low-altitude runway-adjacent cycle detected."
   }));
 
-  maneuvers.forEach((maneuver, index) => {
+  maneuvers.forEach((maneuver) => {
     const hasPatternContext =
       (maneuver.maxAltBeforeFt ?? -Infinity) >= config.maneuverPatternAltitudeFt;
     const hasRecovery = maneuver.recoveredToPattern || (maneuver.maxClimbAfterFpm ?? -Infinity) >= 500;
