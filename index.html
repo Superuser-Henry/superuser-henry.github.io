@@ -126,6 +126,142 @@
         }
 
         /* --- Experience Timeline --- */
+        .experience-intro {
+            max-width: 720px;
+            margin: -10px 0 50px;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+        .experience-group {
+            margin-top: 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            background: #fff;
+            overflow: hidden;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+        }
+        .experience-group:first-of-type {
+            margin-top: 0;
+        }
+        .experience-group:hover {
+            border-color: #bfdbfe;
+            box-shadow: 0 12px 35px rgba(37, 99, 235, 0.08);
+            transform: translateY(-2px);
+        }
+        .experience-group.is-open {
+            border-color: #93c5fd;
+            box-shadow: 0 16px 40px rgba(37, 99, 235, 0.09);
+        }
+        .experience-group-toggle {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            text-align: left;
+            display: grid;
+            grid-template-columns: 42px 1fr 38px;
+            gap: 18px;
+            align-items: start;
+            padding: 26px 28px;
+            cursor: pointer;
+        }
+        .experience-group-toggle:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.25);
+            outline-offset: -3px;
+        }
+        .experience-group-number {
+            padding-top: 4px;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+        }
+        .experience-group-title {
+            display: block;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 5px;
+        }
+        .experience-group-description {
+            display: block;
+            max-width: 720px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .experience-project-titles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 14px;
+        }
+        .experience-project-titles span {
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 4px 9px;
+            background: var(--bg-alt);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            line-height: 1.35;
+        }
+        .experience-group.is-open .experience-project-titles span {
+            border-color: #dbeafe;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .experience-toggle-icon {
+            position: relative;
+            width: 34px;
+            height: 34px;
+            border: 1px solid #d1d5db;
+            border-radius: 50%;
+            margin-top: 2px;
+            transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+        }
+        .experience-toggle-icon::before,
+        .experience-toggle-icon::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 12px;
+            height: 2px;
+            border-radius: 2px;
+            background: var(--text-main);
+            transform: translate(-50%, -50%);
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+        .experience-toggle-icon::after {
+            transform: translate(-50%, -50%) rotate(90deg);
+        }
+        .experience-group.is-open .experience-toggle-icon {
+            border-color: var(--accent);
+            background: var(--accent);
+            transform: rotate(180deg);
+        }
+        .experience-group.is-open .experience-toggle-icon::before,
+        .experience-group.is-open .experience-toggle-icon::after {
+            background: #fff;
+        }
+        .experience-group.is-open .experience-toggle-icon::after {
+            opacity: 0;
+        }
+        .experience-group-panel {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.4s ease;
+        }
+        .experience-group.is-open .experience-group-panel {
+            grid-template-rows: 1fr;
+        }
+        .experience-group-panel-inner {
+            min-height: 0;
+            overflow: hidden;
+        }
+        .experience-timeline {
+            border-top: 1px solid #e5e7eb;
+            padding: 30px 34px 34px 88px;
+        }
         .timeline-item {
             border-left: 2px solid #eee;
             padding-left: 30px;
@@ -143,8 +279,10 @@
             border-radius: 50%;
         }
         .timeline-date { font-family: var(--font-mono); color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px; display: block;}
-        .timeline-content h3 { margin-bottom: 5px; }
-        .timeline-content h4 { color: var(--text-muted); font-weight: 500; margin-bottom: 10px; }
+        .timeline-content h3 { margin-bottom: 6px; font-size: 1.2rem; }
+        .timeline-content h4 { color: var(--accent); font-family: var(--font-mono); font-size: 0.82rem; font-weight: 500; margin-bottom: 12px; }
+        .timeline-content p { max-width: 800px; color: var(--text-muted); }
+        .experience-group .timeline-item:last-child { margin-bottom: 0; }
         .exp-img {
             width: 100%;
             max-width: 300px;
@@ -244,6 +382,31 @@
             .about-grid { grid-template-columns: 1fr; }
             .hero h1 { font-size: 2.5rem; }
             .nav-links { display: none; } /* 简化处理，移动端可隐藏菜单或后续添加汉堡菜单 */
+            .experience-intro { margin-bottom: 40px; }
+            .experience-group { margin-top: 14px; }
+            .experience-group:hover { transform: none; }
+            .experience-group-toggle {
+                grid-template-columns: 28px 1fr 32px;
+                gap: 10px;
+                padding: 21px 18px;
+            }
+            .experience-group-title { font-size: 1.15rem; }
+            .experience-group-description { font-size: 0.9rem; }
+            .experience-project-titles { gap: 5px; margin-top: 12px; }
+            .experience-project-titles span { font-size: 0.66rem; padding: 3px 7px; }
+            .experience-toggle-icon { width: 30px; height: 30px; }
+            .experience-timeline { padding: 25px 18px 28px 32px; }
+            .timeline-item { padding-left: 22px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .experience-group,
+            .experience-group-panel,
+            .experience-toggle-icon,
+            .experience-toggle-icon::before,
+            .experience-toggle-icon::after {
+                transition: none;
+            }
         }
 
         @keyframes bounce {
@@ -316,34 +479,222 @@
     <section id="experience" class="section-padding">
         <div class="container">
             <h2 class="section-title">Experience</h2>
-            
-            <div class="timeline-item">
-                <span class="timeline-date">MAY 2024 - AUG 2024</span>
-                <div class="timeline-content">
-                    <h3>Research Assistant</h3>
-                    <h4>SMU Physics ATLAS Project</h4>
-                    <p>Designed an automated system to ensure instrument stability. Connected devices across different protocols and programmed lab equipment to streamline data collection for CERN.</p>
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Projects/ATLAS.JPEG?raw=true" class="exp-img" alt="ATLAS">
-                </div>
-            </div>
+            <p class="experience-intro">Selected work across embedded systems, industrial automation, aviation, and spatial computing.</p>
 
-            <div class="timeline-item">
-                <span class="timeline-date">JAN 2024 - PRESENT</span>
-                <div class="timeline-content">
-                    <h3>Corresponding Chair</h3>
-                    <h4>IEEE Student Branches</h4>
-                    <p>Promoting ECE events at SMU through social media, increasing visibility and student engagement. Managing digital content and marketing strategies.</p>
-                </div>
-            </div>
+            <section class="experience-group">
+                <button class="experience-group-toggle" type="button" aria-expanded="false" aria-controls="experience-featured">
+                    <span class="experience-group-number mono">01</span>
+                    <span>
+                        <span class="experience-group-title">Featured Work</span>
+                        <span class="experience-group-description">Applied systems work spanning automotive sensing, industrial AI, and machine vision.</span>
+                        <span class="experience-project-titles">
+                            <span>Automotive Radar</span>
+                            <span>Industrial AI Agent</span>
+                            <span>Machine Vision</span>
+                        </span>
+                    </span>
+                    <span class="experience-toggle-icon" aria-hidden="true"></span>
+                </button>
+                <div class="experience-group-panel" id="experience-featured">
+                    <div class="experience-group-panel-inner">
+                        <div class="experience-timeline">
 
-            <div class="timeline-item">
-                <span class="timeline-date">AUG 2023 - PRESENT</span>
-                <div class="timeline-content">
-                    <h3>Digital Technology Leader</h3>
-                    <h4>Mustang Marching Band</h4>
-                    <p>Mentoring students in saxophone performance and introducing new digital initiatives, including designing custom-built accessories.</p>
+                <article class="timeline-item">
+                    <span class="timeline-date">AUG 2025 — PRESENT</span>
+                    <div class="timeline-content">
+                        <h3>Automotive Radar</h3>
+                        <h4>77 GHz FMCW RADAR · ADAS · EMBEDDED SYSTEMS</h4>
+                        <p>A low-cost forward collision warning system built around TI’s AWR2944P mmWave radar. The project looks at what it takes to turn raw radar data into something useful on the road: tracking distance and relative speed, deciding which target actually matters, and eventually tying that into a small automatic braking demo.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">SUMMER 2026 — PRESENT</span>
+                    <div class="timeline-content">
+                        <h3>Industrial AI Agent</h3>
+                        <h4>LLM · MCP · TWINCAT · ENGINEERING AUTOMATION</h4>
+                        <p>I’ve been experimenting with how AI agents can work inside a real industrial engineering environment instead of just answering questions in a chat box. Most of the work revolves around TwinCAT, MCP tools, PLC projects, System Manager, and figuring out how an agent can inspect, understand, and safely work with an automation project.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">SUMMER 2026</span>
+                    <div class="timeline-content">
+                        <h3>Machine Vision</h3>
+                        <h4>INDUSTRIAL VISION · MOTION CONTROL · PLC</h4>
+                        <p>This started as a vision task and quickly became a much bigger controls problem. Cameras, contour detection, calibration, conveyors, robot motion, and a rotary cutter all have to agree on where an object is and what should happen next. A lot of the interesting work has been getting those pieces to behave like one system.</p>
+                    </div>
+                </article>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
+
+            <section class="experience-group">
+                <button class="experience-group-toggle" type="button" aria-expanded="false" aria-controls="experience-engineering">
+                    <span class="experience-group-number mono">02</span>
+                    <span>
+                        <span class="experience-group-title">Engineering Projects</span>
+                        <span class="experience-group-description">Hands-on builds connecting software, controls, instrumentation, and physical hardware.</span>
+                        <span class="experience-project-titles">
+                            <span>ATLAS Test Automation</span>
+                            <span>Semiconductor Fabrication</span>
+                            <span>Forward Collision Warning</span>
+                            <span>Writing Robot</span>
+                            <span>Delta Robot</span>
+                        </span>
+                    </span>
+                    <span class="experience-toggle-icon" aria-hidden="true"></span>
+                </button>
+                <div class="experience-group-panel" id="experience-engineering">
+                    <div class="experience-group-panel-inner">
+                        <div class="experience-timeline">
+
+                <article class="timeline-item">
+                    <span class="timeline-date">MAY 2024 — AUG 2024</span>
+                    <div class="timeline-content">
+                        <h3>ATLAS Test Automation</h3>
+                        <h4>RESEARCH INSTRUMENTATION · PYTHON · PYVISA</h4>
+                        <p>During my time in the SMU Physics Lab, I worked on automating optical-fiber reliability testing for the ATLAS project. Python scripts handled a bench full of lab equipment over VISA, serial, and USB connections, which made repetitive measurement runs much less painful and much more consistent.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">AUG 2025 — DEC 2025</span>
+                    <div class="timeline-content">
+                        <h3>Semiconductor Fabrication</h3>
+                        <h4>MICROFABRICATION · SEMICONDUCTOR PROCESSING</h4>
+                        <p>Semiconductor fabrication gave me a chance to work much closer to the physical side of electrical engineering. Instead of treating a transistor as a symbol on a schematic, the process goes all the way down to how devices are patterned, processed, and built on a wafer.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">AUG 2025 — MAY 2026</span>
+                    <div class="timeline-content">
+                        <h3>Senior Design — Forward Collision Warning System</h3>
+                        <h4>MMWAVE RADAR · RASPBERRY PI · REAL-TIME SYSTEMS</h4>
+                        <p>My senior design project is basically a small-scale ADAS testbed. A 77 GHz radar handles vehicle detection while a Raspberry Pi takes care of data processing, visualization, and warning logic. We’re also building the hardware around it, including the radar mount and a servo-based braking demonstration.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">SUMMER 2026</span>
+                    <div class="timeline-content">
+                        <h3>Writing Robot</h3>
+                        <h4>G-CODE · TWINCAT · ADS · MOTION CONTROL</h4>
+                        <p>One of my first larger TwinCAT motion projects was a robot that could draw from G-code. I used Python ADS communication to send motion data into the PLC and spent quite a bit of time dealing with buffers, machine states, pen-up/pen-down logic, and all the little things that show up once a motion demo has to run more than once.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">SUMMER 2026</span>
+                    <div class="timeline-content">
+                        <h3>Delta Robot</h3>
+                        <h4>MULTI-AXIS MOTION · KINEMATICS · PLC</h4>
+                        <p>The Delta robot was where TwinCAT motion control started getting properly complicated. Three linked robot axes, an extra rotary axis, virtual Cartesian coordinates, conveyors, and coupled motion made it a good exercise in understanding how a multi-axis machine is actually organized rather than just commanding one motor at a time.</p>
+                    </div>
+                </article>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="experience-group">
+                <button class="experience-group-toggle" type="button" aria-expanded="false" aria-controls="experience-leadership">
+                    <span class="experience-group-number mono">03</span>
+                    <span>
+                        <span class="experience-group-title">Leadership</span>
+                        <span class="experience-group-description">Student leadership and community-building within electrical and computer engineering.</span>
+                        <span class="experience-project-titles">
+                            <span>IEEE Student Branch</span>
+                        </span>
+                    </span>
+                    <span class="experience-toggle-icon" aria-hidden="true"></span>
+                </button>
+                <div class="experience-group-panel" id="experience-leadership">
+                    <div class="experience-group-panel-inner">
+                        <div class="experience-timeline">
+
+                <article class="timeline-item">
+                    <span class="timeline-date">JAN 2024 — PRESENT</span>
+                    <div class="timeline-content">
+                        <h3>Secretary — IEEE Student Branch</h3>
+                        <h4>STUDENT LEADERSHIP · EVENT PROMOTION · COMMUNITY</h4>
+                        <p>As Secretary of the SMU IEEE Student Branch, I help promote and organize Electrical and Computer Engineering events, manage digital content, and build a more visible and engaged student engineering community.</p>
+                    </div>
+                </article>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="experience-group">
+                <button class="experience-group-toggle" type="button" aria-expanded="false" aria-controls="experience-aviation">
+                    <span class="experience-group-number mono">04</span>
+                    <span>
+                        <span class="experience-group-title">Aviation</span>
+                        <span class="experience-group-description">Learning aviation from both the cockpit and the real-time data behind it.</span>
+                        <span class="experience-project-titles">
+                            <span>Private Pilot Training</span>
+                            <span>ADS-B Radar &amp; Decoding</span>
+                        </span>
+                    </span>
+                    <span class="experience-toggle-icon" aria-hidden="true"></span>
+                </button>
+                <div class="experience-group-panel" id="experience-aviation">
+                    <div class="experience-group-panel-inner">
+                        <div class="experience-timeline">
+
+                <article class="timeline-item">
+                    <span class="timeline-date">2026 — PRESENT</span>
+                    <div class="timeline-content">
+                        <h3>Private Pilot Training</h3>
+                        <h4>C172 · FLIGHT TRAINING · AVIONICS</h4>
+                        <p>I started learning to fly mostly because aviation has always been something I wanted to understand from the cockpit, not just from the ground. Most of my training has been in the Cessna 172, working through the usual mix of aircraft control, landings, navigation, radio work, and learning how all the avionics fit into the actual flying.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">FEB 2026 — PRESENT</span>
+                    <div class="timeline-content">
+                        <h3>ADS-B Radar &amp; Decoding</h3>
+                        <h4>ESP32 · ADS-B · REAL-TIME FLIGHT DATA</h4>
+                        <p>This is a small side project that naturally came out of flight training. I’ve been playing with an ESP32-based aircraft radar display, different ADS-B data sources, and the surprisingly messy problem of getting decent live aircraft coverage in different parts of the world.</p>
+                    </div>
+                </article>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="experience-group">
+                <button class="experience-group-toggle" type="button" aria-expanded="false" aria-controls="experience-explorations">
+                    <span class="experience-group-number mono">05</span>
+                    <span>
+                        <span class="experience-group-title">Explorations</span>
+                        <span class="experience-group-description">Early experiments at the edge of spatial computing and physical-digital interaction.</span>
+                        <span class="experience-project-titles">
+                            <span>Spatial Computing</span>
+                        </span>
+                    </span>
+                    <span class="experience-toggle-icon" aria-hidden="true"></span>
+                </button>
+                <div class="experience-group-panel" id="experience-explorations">
+                    <div class="experience-group-panel-inner">
+                        <div class="experience-timeline">
+
+                <article class="timeline-item">
+                    <span class="timeline-date">2026 — PRESENT</span>
+                    <div class="timeline-content">
+                        <h3>Spatial Computing</h3>
+                        <h4>AR · 3D · PHYSICAL-DIGITAL INTERACTION</h4>
+                        <p>I occasionally work on ideas around putting digital objects into real spaces and making the interaction feel less like a demo and more like something people would actually use. Some of that has involved AR, 3D assets, iOS, and a few concepts that I’m intentionally keeping a little vague for now.</p>
+                    </div>
+                </article>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     </section>
 
@@ -466,6 +817,36 @@
             
             // 稍微延迟一点开始
             setTimeout(typeWriter, 500);
+
+            const experienceToggles = document.querySelectorAll('.experience-group-toggle');
+
+            function setExperienceGroupState(group, expanded) {
+                const toggle = group.querySelector('.experience-group-toggle');
+                const panel = group.querySelector('.experience-group-panel');
+
+                group.classList.toggle('is-open', expanded);
+                toggle.setAttribute('aria-expanded', String(expanded));
+                panel.setAttribute('aria-hidden', String(!expanded));
+            }
+
+            experienceToggles.forEach(function(toggle) {
+                const group = toggle.closest('.experience-group');
+                const startsOpen = toggle.getAttribute('aria-expanded') === 'true';
+                setExperienceGroupState(group, startsOpen);
+
+                toggle.addEventListener('click', function() {
+                    const willOpen = toggle.getAttribute('aria-expanded') !== 'true';
+
+                    experienceToggles.forEach(function(otherToggle) {
+                        const otherGroup = otherToggle.closest('.experience-group');
+                        setExperienceGroupState(otherGroup, false);
+                    });
+
+                    if (willOpen) {
+                        setExperienceGroupState(group, true);
+                    }
+                });
+            });
         });
     </script>
 </body>
