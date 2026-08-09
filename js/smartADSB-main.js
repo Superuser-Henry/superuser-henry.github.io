@@ -119,7 +119,7 @@ function createCanvasMessage(canvas, message) {
   const width = canvas.width;
   const height = canvas.height;
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#a0a7ba";
+  context.fillStyle = "#d9eeff";
   context.fillRect(0, 0, width, height);
   context.fillStyle = "rgba(230, 245, 252, 0.84)";
   context.font = `${Math.max(14, Math.round(width / 38))}px Avenir Next, sans-serif`;
@@ -342,7 +342,7 @@ function drawTrajectoryFrame(timestampMs) {
   }
 
   context.clearRect(0, 0, width, height);
-  context.fillStyle = "#a0a7ba";
+  context.fillStyle = "#d9eeff";
   context.fillRect(0, 0, width, height);
 
   const orbitAngleRad = ((timestampMs % 15000) / 15000) * Math.PI * 2;
