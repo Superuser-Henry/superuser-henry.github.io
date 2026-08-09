@@ -45,7 +45,13 @@ export async function transcribeAudio({
   body.append("response_format", speakerDiarization ? "diarized_json" : "json");
   body.append("temperature", String(temperature));
 
-  if (language) body.append("language", language);
+  if (language) {
+    if (model === "gpt-transcribe") {
+      body.append("languages[]", language);
+    } else {
+      body.append("language", language);
+    }
+  }
   if (!speakerDiarization && prompt.trim()) body.append("prompt", prompt.trim());
   if (speakerDiarization || chunkingStrategy === "auto") {
     body.append("chunking_strategy", "auto");

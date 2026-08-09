@@ -34,7 +34,7 @@ export function TranscriptionWorkbench() {
   const [showKey, setShowKey] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
-  const [model, setModel] = useState("gpt-4o-mini-transcribe");
+  const [model, setModel] = useState("gpt-transcribe");
   const [language, setLanguage] = useState("zh");
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [temperature, setTemperature] = useState(0);
@@ -249,7 +249,8 @@ export function TranscriptionWorkbench() {
             <div className="field-grid">
               <label><span>模型</span>
                 <select value={model} onChange={(event) => setModel(event.target.value)}>
-                  <option value="gpt-4o-mini-transcribe">GPT-4o mini Transcribe · 推荐</option>
+                  <option value="gpt-transcribe">OpenAI: GPT Transcribe · 推荐</option>
+                  <option value="gpt-4o-mini-transcribe">GPT-4o mini Transcribe</option>
                   <option value="gpt-4o-transcribe">GPT-4o Transcribe</option>
                   <option value="whisper-1">Whisper-1 · 兼容原项目</option>
                 </select>

@@ -34,7 +34,7 @@ npm run build
 ## 支持的能力
 
 - 拖放或选择 MP3、MP4、MPEG、MPGA、M4A、WAV、WEBM。
-- 选择 GPT-4o mini Transcribe、GPT-4o Transcribe 或 Whisper-1。
+- 默认使用 OpenAI GPT Transcribe，也可选择 GPT-4o mini Transcribe、GPT-4o Transcribe 或 Whisper-1。
 - 配置语言、提示词和 temperature。
 - 使用 GPT-4o Transcribe Diarize 自动区分说话人，并可显示分段时间。
 - 选择自动语音分段或整段处理；多人模式会自动启用分段。

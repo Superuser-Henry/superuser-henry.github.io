@@ -19,12 +19,13 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
     readFile(new URL("package.json", root), "utf8"),
   ]);
 
-  assert.match(workbench, /useState\("gpt-4o-mini-transcribe"\)/);
+  assert.match(workbench, /useState\("gpt-transcribe"\)/);
+  assert.match(workbench, /value="gpt-transcribe"/);
+  assert.match(workbench, /OpenAI: GPT Transcribe · 推荐/);
   assert.match(workbench, /gpt-4o-transcribe-diarize/);
   assert.match(workbench, /区分说话人/);
   assert.match(workbench, /显示分段时间/);
   assert.match(workbench, /随机度/);
-  assert.doesNotMatch(workbench, /value="gpt-transcribe"/);
   assert.match(workbench, /type=\{showKey \? "text" : "password"\}/);
   assert.doesNotMatch(workbench, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(workbench, /sk-[A-Za-z0-9]{12,}/);
@@ -39,6 +40,8 @@ test("formats diarized responses and enables automatic chunking", async () => {
 
   assert.match(transcription, /response_format.*diarized_json/);
   assert.match(transcription, /chunking_strategy.*auto/);
+  assert.match(transcription, /model === "gpt-transcribe"/);
+  assert.match(transcription, /languages\[\]/);
   assert.match(transcription, /formatDiarizedTranscript/);
   assert.match(transcription, /说话人/);
 });
