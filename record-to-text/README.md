@@ -35,7 +35,10 @@ npm run build
 
 - 拖放或选择 MP3、MP4、MPEG、MPGA、M4A、WAV、WEBM。
 - 默认使用 OpenAI GPT Transcribe，也可选择 GPT-4o mini Transcribe、GPT-4o Transcribe 或 Whisper-1。
-- 配置语言、提示词和 temperature。
+- 按模型配置语言提示、关键词、上下文提示、temperature 和返回格式。
+- 可选择自动或手动 Server VAD，并调整阈值、前置保留和静音判停时间。
+- 支持流式返回、GPT-4o logprobs，以及 Whisper 词级或段落时间戳。
+- 折叠展示实际提交给 OpenAI 的 JSON 风格参数；API Key 与音频内容会隐藏。
 - 使用 GPT-4o Transcribe Diarize 自动区分说话人，并可显示分段时间。
 - 选择自动语音分段或整段处理；多人模式会自动启用分段。
 - 页面内编辑、复制、下载 Markdown 转写稿。

@@ -26,6 +26,12 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
   assert.match(workbench, /区分说话人/);
   assert.match(workbench, /显示分段时间/);
   assert.match(workbench, /随机度/);
+  assert.match(workbench, /关键词提示/);
+  assert.match(workbench, /手动设置 VAD/);
+  assert.match(workbench, /流式返回/);
+  assert.match(workbench, /返回 Logprobs/);
+  assert.match(workbench, /查看提交给模型的参数/);
+  assert.match(workbench, /JSON\.stringify\(requestPreview/);
   assert.match(workbench, /type=\{showKey \? "text" : "password"\}/);
   assert.doesNotMatch(workbench, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(workbench, /sk-[A-Za-z0-9]{12,}/);
@@ -33,15 +39,23 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
 });
 
 test("formats diarized responses and enables automatic chunking", async () => {
-  const transcription = await readFile(
-    new URL("app/lib/transcription.ts", root),
-    "utf8",
-  );
+  const [transcription, workbench] = await Promise.all([
+    readFile(new URL("app/lib/transcription.ts", root), "utf8"),
+    readFile(new URL("app/TranscriptionWorkbench.tsx", root), "utf8"),
+  ]);
 
-  assert.match(transcription, /response_format.*diarized_json/);
+  assert.match(transcription, /add\("response_format", options\.responseFormat\)/);
+  assert.match(workbench, /diarized_json/);
   assert.match(transcription, /chunking_strategy.*auto/);
   assert.match(transcription, /model === "gpt-transcribe"/);
   assert.match(transcription, /languages\[\]/);
+  assert.match(transcription, /keywords\[\]/);
+  assert.match(transcription, /model !== "whisper-1"/);
+  assert.match(transcription, /server_vad/);
+  assert.match(transcription, /include\[\]/);
+  assert.match(transcription, /timestamp_granularities\[\]/);
+  assert.match(transcription, /createRequestError/);
+  assert.match(transcription, /authorization: "Bearer \[hidden\]"/);
   assert.match(transcription, /formatDiarizedTranscript/);
   assert.match(transcription, /说话人/);
 });

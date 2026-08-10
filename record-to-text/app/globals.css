@@ -417,6 +417,10 @@ textarea:focus-visible,
   color: var(--danger);
 }
 
+.status-message.is-error {
+  white-space: pre-wrap;
+}
+
 .error-copy {
   margin: 12px 0 0;
   font-size: 0.74rem;
@@ -430,7 +434,9 @@ textarea:focus-visible,
 }
 
 select,
-.settings-panel textarea {
+.settings-panel textarea,
+.settings-panel input[type="text"],
+.settings-panel input[type="number"] {
   width: 100%;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
@@ -532,12 +538,111 @@ select {
   font-size: 0.76rem;
 }
 
+.settings-panel input[type="text"],
+.settings-panel input[type="number"] {
+  height: 42px;
+  padding: 0 11px;
+  font-size: 0.76rem;
+}
+
 .settings-panel textarea {
   min-height: 76px;
   padding: 11px;
   resize: vertical;
   font-size: 0.78rem;
   line-height: 1.55;
+}
+
+.model-note {
+  margin: -8px 0 18px;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: #1e40af;
+}
+
+.prompt-label {
+  margin-top: 18px;
+}
+
+.vad-settings {
+  margin: -2px 0 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-alt);
+}
+
+.subsection-title {
+  margin: 0 0 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.vad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.vad-grid label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+}
+
+.request-preview {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.request-preview summary {
+  min-height: 54px;
+  padding: 11px 15px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  list-style-position: inside;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.request-preview summary::marker {
+  color: var(--accent);
+}
+
+.request-preview summary small {
+  margin-left: 17px;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 500;
+}
+
+.request-preview[open] summary {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-alt);
+}
+
+.request-preview pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  background: #101827;
+  color: #dbeafe;
+  font-family: var(--font-mono);
+  font-size: 0.67rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .temperature-row {
@@ -872,6 +977,10 @@ select {
   }
 
   .recognition-options {
+    grid-template-columns: 1fr;
+  }
+
+  .vad-grid {
     grid-template-columns: 1fr;
   }
 

@@ -14,10 +14,46 @@ import {
   OPENAI_FILE_LIMIT,
   validateAudio,
 } from "./lib/audio";
-import { friendlyError, transcribeAudio } from "./lib/transcription";
+import {
+  ChunkingStrategy,
+  ResponseFormat,
+  TimestampGranularity,
+  friendlyError,
+  getTranscriptionRequestPreview,
+  transcribeAudio,
+} from "./lib/transcription";
 
 const DEFAULT_PROMPT =
   "这是中文语音转写。请正确识别以下词汇：OpenAI、Whisper、API。";
+
+const RESPONSE_FORMAT_LABELS: Record<ResponseFormat, string> = {
+  json: "JSON · 纯文字",
+  text: "Text · 纯文字",
+  srt: "SRT · 字幕",
+  verbose_json: "Verbose JSON · 含时间信息",
+  vtt: "VTT · 字幕",
+  diarized_json: "Diarized JSON · 说话人分段",
+};
+
+const LOGPROB_MODELS = new Set([
+  "gpt-4o-transcribe",
+  "gpt-4o-mini-transcribe",
+]);
+
+function splitHints(value: string): string[] {
+  return [...new Set(value.split(/[，,\n]/).map((item) => item.trim()).filter(Boolean))];
+}
+
+function responseFormatsFor(model: string): ResponseFormat[] {
+  if (model === "gpt-4o-transcribe-diarize") return ["diarized_json"];
+  if (model === "gpt-4o-transcribe" || model === "gpt-4o-mini-transcribe") {
+    return ["json"];
+  }
+  if (model === "whisper-1") {
+    return ["json", "text", "srt", "vtt", "verbose_json"];
+  }
+  return ["json", "text"];
+}
 
 type Status = "idle" | "ready" | "uploading" | "done" | "error";
 
@@ -35,10 +71,19 @@ export function TranscriptionWorkbench() {
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
   const [model, setModel] = useState("gpt-transcribe");
-  const [language, setLanguage] = useState("zh");
+  const [languageHints, setLanguageHints] = useState("zh");
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [keywords, setKeywords] = useState("");
   const [temperature, setTemperature] = useState(0);
-  const [chunkingStrategy, setChunkingStrategy] = useState("auto");
+  const [chunkingStrategy, setChunkingStrategy] = useState<ChunkingStrategy>("auto");
+  const [vadThreshold, setVadThreshold] = useState(0.5);
+  const [vadPrefixPaddingMs, setVadPrefixPaddingMs] = useState(300);
+  const [vadSilenceDurationMs, setVadSilenceDurationMs] = useState(200);
+  const [responseFormat, setResponseFormat] = useState<ResponseFormat>("json");
+  const [includeLogprobs, setIncludeLogprobs] = useState(false);
+  const [stream, setStream] = useState(false);
+  const [wordTimestamps, setWordTimestamps] = useState(false);
+  const [segmentTimestamps, setSegmentTimestamps] = useState(true);
   const [speakerDiarization, setSpeakerDiarization] = useState(false);
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
   const [transcript, setTranscript] = useState("");
@@ -79,6 +124,58 @@ export function TranscriptionWorkbench() {
     }
   };
 
+  const effectiveModel = speakerDiarization
+    ? "gpt-4o-transcribe-diarize"
+    : model;
+  const availableResponseFormats = responseFormatsFor(effectiveModel);
+  const effectiveResponseFormat = availableResponseFormats.includes(responseFormat)
+    ? responseFormat
+    : availableResponseFormats[0];
+  const effectiveChunkingStrategy: ChunkingStrategy =
+    effectiveModel === "whisper-1"
+      ? "single"
+      : speakerDiarization && chunkingStrategy === "single"
+        ? "auto"
+        : chunkingStrategy;
+  const supportsStreaming =
+    effectiveModel !== "whisper-1" &&
+    ["json", "diarized_json"].includes(effectiveResponseFormat);
+  const supportsLogprobs =
+    LOGPROB_MODELS.has(effectiveModel) && effectiveResponseFormat === "json";
+  const supportsWhisperTimestamps =
+    effectiveModel === "whisper-1" && effectiveResponseFormat === "verbose_json";
+  const timestampGranularities: TimestampGranularity[] = supportsWhisperTimestamps
+    ? [
+        ...(wordTimestamps ? (["word"] as TimestampGranularity[]) : []),
+        ...(segmentTimestamps ? (["segment"] as TimestampGranularity[]) : []),
+      ]
+    : [];
+
+  const requestOptionsFor = (selectedFile: File) => ({
+    file: selectedFile,
+    model: effectiveModel,
+    languages: splitHints(languageHints),
+    prompt,
+    keywords: splitHints(keywords),
+    temperature,
+    chunkingStrategy: effectiveChunkingStrategy,
+    vadThreshold,
+    vadPrefixPaddingMs,
+    vadSilenceDurationMs,
+    responseFormat: effectiveResponseFormat,
+    includeLogprobs: includeLogprobs && supportsLogprobs,
+    stream: stream && supportsStreaming,
+    timestampGranularities,
+    speakerDiarization,
+    includeTimestamps,
+  });
+  const requestPreview = file
+    ? getTranscriptionRequestPreview(requestOptionsFor(file))
+    : {
+        endpoint: "https://api.openai.com/v1/audio/transcriptions",
+        method: "POST",
+        body: { file: "[选择录音后显示完整参数]", model: effectiveModel },
+      };
   const canSubmit = Boolean(apiKey.trim() && file && status !== "uploading");
 
   const runTranscription = async () => {
@@ -101,14 +198,10 @@ export function TranscriptionWorkbench() {
     try {
       const result = await transcribeAudio({
         apiKey,
-        file,
-        model: speakerDiarization ? "gpt-4o-transcribe-diarize" : model,
-        language,
-        prompt,
-        temperature,
-        chunkingStrategy,
-        speakerDiarization,
-        includeTimestamps,
+        ...requestOptionsFor(file),
+        onPartialTranscript: stream && supportsStreaming
+          ? (partialText) => setTranscript(partialText)
+          : undefined,
         signal: controller.signal,
       });
       setTranscript(result);
@@ -255,35 +348,110 @@ export function TranscriptionWorkbench() {
                   <option value="whisper-1">Whisper-1 · 兼容原项目</option>
                 </select>
               </label>
-              <label><span>语言</span>
-                <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-                  <option value="zh">中文</option>
-                  <option value="en">英语</option>
-                  <option value="ja">日语</option>
-                  <option value="ko">韩语</option>
-                  <option value="es">西班牙语</option>
-                  <option value="fr">法语</option>
-                  <option value="de">德语</option>
-                  <option value="">自动识别</option>
+              <label><span>返回格式</span>
+                <select
+                  value={effectiveResponseFormat}
+                  disabled={availableResponseFormats.length === 1}
+                  onChange={(event) => setResponseFormat(event.target.value as ResponseFormat)}
+                >
+                  {availableResponseFormats.map((format) => (
+                    <option key={format} value={format}>{RESPONSE_FORMAT_LABELS[format]}</option>
+                  ))}
                 </select>
               </label>
             </div>
             <div className="field-grid">
+              <label><span>语言提示</span>
+                <input
+                  type="text"
+                  value={languageHints}
+                  onChange={(event) => setLanguageHints(event.target.value)}
+                  placeholder={effectiveModel === "gpt-transcribe" ? "zh, en" : "zh"}
+                  spellCheck={false}
+                />
+              </label>
               <label><span>音频分段</span>
                 <select
-                  value={speakerDiarization ? "auto" : chunkingStrategy}
-                  disabled={speakerDiarization}
-                  onChange={(event) => setChunkingStrategy(event.target.value)}
+                  value={effectiveChunkingStrategy}
+                  disabled={effectiveModel === "whisper-1"}
+                  onChange={(event) => setChunkingStrategy(event.target.value as ChunkingStrategy)}
                 >
                   <option value="auto">自动检测语音 · 推荐</option>
-                  <option value="single">整段处理</option>
+                  {!speakerDiarization && <option value="single">整段处理</option>}
+                  <option value="server_vad">手动设置 VAD</option>
                 </select>
               </label>
-              <div className="setting-summary">
-                <span>当前模式</span>
-                <strong>{speakerDiarization ? "多人对话" : "普通转写"}</strong>
-              </div>
             </div>
+
+            <p className="field-note model-note">
+              {effectiveModel === "gpt-transcribe"
+                ? "GPT Transcribe 支持多个语言代码（逗号分隔）和关键词提示。"
+                : effectiveModel === "whisper-1"
+                  ? "Whisper 按整段提交；网页会省略 chunking_strategy，以匹配本地 Python 调用。"
+                  : speakerDiarization
+                    ? "多人模式固定使用 Diarized JSON，并要求启用语音分段。"
+                    : "此模型只使用第一个语言代码，并固定返回 JSON。"}
+            </p>
+
+            {effectiveChunkingStrategy === "server_vad" && (
+              <div className="vad-settings" aria-label="手动 VAD 参数">
+                <p className="subsection-title">语音活动检测 / SERVER VAD</p>
+                <div className="vad-grid">
+                  <label><span>灵敏度阈值</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={vadThreshold}
+                      onChange={(event) => setVadThreshold(Number(event.target.value))}
+                    />
+                  </label>
+                  <label><span>前置保留 ms</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      value={vadPrefixPaddingMs}
+                      onChange={(event) => setVadPrefixPaddingMs(Number(event.target.value))}
+                    />
+                  </label>
+                  <label><span>静音判停 ms</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      value={vadSilenceDurationMs}
+                      onChange={(event) => setVadSilenceDurationMs(Number(event.target.value))}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {effectiveModel === "gpt-transcribe" && (
+              <>
+                <label className="field-label" htmlFor="keywords">关键词提示</label>
+                <textarea
+                  id="keywords"
+                  value={keywords}
+                  onChange={(event) => setKeywords(event.target.value)}
+                  placeholder={"每行一个词或短语，例如：\n产品名称\n人物姓名\n专业术语"}
+                  rows={3}
+                />
+                <p className="field-note">关键词是识别提示，不会强制模型输出；请只填写录音中可能出现的词。</p>
+              </>
+            )}
+
+            <label className="field-label prompt-label" htmlFor="prompt">上下文提示 / 输出风格</label>
+            <textarea
+              id="prompt"
+              value={prompt}
+              disabled={speakerDiarization}
+              onChange={(event) => setPrompt(event.target.value)}
+              rows={3}
+            />
+
             <div className="recognition-options" aria-label="高级识别选项">
               <label className="option-card" htmlFor="speaker-diarization">
                 <input
@@ -298,37 +466,84 @@ export function TranscriptionWorkbench() {
                   <small>自动识别人数，并标记为说话人 A、B、C…</small>
                 </span>
               </label>
+
+              {speakerDiarization && (
+                <label className="option-card" htmlFor="include-speaker-timestamps">
+                  <input
+                    id="include-speaker-timestamps"
+                    type="checkbox"
+                    aria-label="显示分段时间"
+                    checked={includeTimestamps}
+                    onChange={(event) => setIncludeTimestamps(event.target.checked)}
+                  />
+                  <span>
+                    <strong>显示分段时间</strong>
+                    <small>给每个说话人片段加入开始与结束时间</small>
+                  </span>
+                </label>
+              )}
+
               <label
-                className={`option-card ${speakerDiarization ? "" : "is-disabled"}`}
-                htmlFor="include-speaker-timestamps"
+                className={`option-card ${supportsStreaming ? "" : "is-disabled"}`}
+                htmlFor="stream-response"
               >
                 <input
-                  id="include-speaker-timestamps"
+                  id="stream-response"
                   type="checkbox"
-                  aria-label="显示分段时间"
-                  checked={includeTimestamps}
-                  disabled={!speakerDiarization}
-                  onChange={(event) => setIncludeTimestamps(event.target.checked)}
+                  aria-label="流式返回"
+                  checked={stream && supportsStreaming}
+                  disabled={!supportsStreaming}
+                  onChange={(event) => setStream(event.target.checked)}
                 />
                 <span>
-                  <strong>显示分段时间</strong>
-                  <small>在多人转写稿中加入每段开始与结束时间</small>
+                  <strong>流式返回</strong>
+                  <small>边识别边显示文字；Whisper 不支持</small>
                 </span>
               </label>
+
+              <label
+                className={`option-card ${supportsLogprobs ? "" : "is-disabled"}`}
+                htmlFor="include-logprobs"
+              >
+                <input
+                  id="include-logprobs"
+                  type="checkbox"
+                  aria-label="返回 Logprobs"
+                  checked={includeLogprobs && supportsLogprobs}
+                  disabled={!supportsLogprobs}
+                  onChange={(event) => setIncludeLogprobs(event.target.checked)}
+                />
+                <span>
+                  <strong>返回 Logprobs</strong>
+                  <small>仅 GPT-4o Transcribe 系列 JSON 响应支持</small>
+                </span>
+              </label>
+
+              {supportsWhisperTimestamps && (
+                <>
+                  <label className="option-card" htmlFor="word-timestamps">
+                    <input
+                      id="word-timestamps"
+                      type="checkbox"
+                      aria-label="词级时间戳"
+                      checked={wordTimestamps}
+                      onChange={(event) => setWordTimestamps(event.target.checked)}
+                    />
+                    <span><strong>词级时间戳</strong><small>更精细，但会增加处理延迟</small></span>
+                  </label>
+                  <label className="option-card" htmlFor="segment-timestamps">
+                    <input
+                      id="segment-timestamps"
+                      type="checkbox"
+                      aria-label="段落时间戳"
+                      checked={segmentTimestamps}
+                      onChange={(event) => setSegmentTimestamps(event.target.checked)}
+                    />
+                    <span><strong>段落时间戳</strong><small>返回每个语音片段的时间范围</small></span>
+                  </label>
+                </>
+              )}
             </div>
-            {speakerDiarization && (
-              <p className="field-note option-note">
-                多人模式使用 GPT-4o Transcribe Diarize。人数由模型自动判断；提示词暂不适用于此模型，音频会自动分段。
-              </p>
-            )}
-            <label className="field-label" htmlFor="prompt">提示词 / 专有名词</label>
-            <textarea
-              id="prompt"
-              value={prompt}
-              disabled={speakerDiarization}
-              onChange={(event) => setPrompt(event.target.value)}
-              rows={3}
-            />
             <div className="temperature-row">
               <label htmlFor="temperature">随机度</label>
               <input id="temperature" type="range" min="0" max="1" step="0.1" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} />
@@ -336,6 +551,14 @@ export function TranscriptionWorkbench() {
             </div>
             <p className="field-note temperature-note">0 更专注、结果更确定；数值越高，模型输出的随机性越大。</p>
           </section>
+
+          <details className="request-preview">
+            <summary>
+              <span>查看提交给模型的参数</span>
+              <small>JSON / 已隐藏 API Key 与音频内容</small>
+            </summary>
+            <pre><code>{JSON.stringify(requestPreview, null, 2)}</code></pre>
+          </details>
 
           <div className="action-row">
             <button className="primary-button" type="button" disabled={!canSubmit} onClick={runTranscription}>
