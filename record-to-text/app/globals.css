@@ -674,6 +674,39 @@ select:disabled {
   accent-color: var(--accent);
 }
 
+.capability-card {
+  cursor: default;
+}
+
+.capability-card:hover {
+  border-color: var(--line);
+  background: var(--bg);
+}
+
+.capability-card.is-active {
+  border-color: #93c5fd;
+  background: var(--accent-soft);
+}
+
+.capability-indicator {
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.capability-card.is-active .capability-indicator {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
 .option-card strong,
 .option-card small {
   display: block;
@@ -809,6 +842,32 @@ select {
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.debug-preview {
+  margin-top: 12px;
+}
+
+.debug-preview-toolbar {
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fafc;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
+.debug-preview-toolbar button {
+  border: 0;
+  padding: 3px 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 700;
 }
 
 .temperature-row {

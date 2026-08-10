@@ -43,9 +43,11 @@ npm run build
 - 支持流式返回、GPT-4o logprobs，以及 Whisper 词级或段落时间戳。
 - 折叠展示实际提交给 OpenAI 的 JSON 风格参数；API Key 与音频内容会隐藏。
 - 使用 GPT-4o Transcribe Diarize 自动区分说话人，并可显示分段时间。
-- 选择自动语音分段或整段处理；多人模式会自动启用分段。
+- 选择自动语音分段或整段处理；说话人分离需明确选择 `gpt-4o-transcribe-diarize`，不会覆盖用户选择的其他模型。
 - 页面内编辑、复制、下载 Markdown 转写稿。
 - 默认请求显示真实上传进度、百分比和已上传字节；上传完成后切换为模型处理状态。
+- 支持对整段音频执行 FFmpeg 严格解码扫描，并生成 SHA-256、文件头尾、时长和解码错误诊断 JSON。
+- 记录 OpenAI 的 `x-request-id`、客户端请求 ID、处理时长和 API 版本，便于定位或提交支持工单。
 - 转写期间取消请求。
 - API Key 只保存在 React 内存状态；刷新或关闭页面后消失。
 

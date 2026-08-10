@@ -18,14 +18,18 @@ import {
   validateAudio,
 } from "./lib/audio";
 import {
+  AudioDiagnosticError,
+  AudioDiagnosticReport,
   AudioProcessingProgress,
   cancelAudioProcessing,
   compressAudioForUpload,
+  diagnoseAudioFile,
   repairAudioAsWav,
 } from "./lib/audioProcessing";
 import {
   ChunkingStrategy,
   ResponseFormat,
+  RequestDebugInfo,
   TimestampGranularity,
   UploadProgress,
   friendlyError,
@@ -87,6 +91,9 @@ export function TranscriptionWorkbench() {
   const [audioToolStatus, setAudioToolStatus] = useState<AudioToolStatus>("idle");
   const [audioToolProgress, setAudioToolProgress] = useState(0);
   const [audioToolMessage, setAudioToolMessage] = useState("");
+  const [audioDiagnostics, setAudioDiagnostics] = useState<AudioDiagnosticReport | null>(null);
+  const [requestDebug, setRequestDebug] = useState<RequestDebugInfo | null>(null);
+  const [diagnosticCopied, setDiagnosticCopied] = useState(false);
   const [model, setModel] = useState("gpt-transcribe");
   const [languageHints, setLanguageHints] = useState("zh");
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
@@ -101,7 +108,6 @@ export function TranscriptionWorkbench() {
   const [stream, setStream] = useState(false);
   const [wordTimestamps, setWordTimestamps] = useState(false);
   const [segmentTimestamps, setSegmentTimestamps] = useState(true);
-  const [speakerDiarization, setSpeakerDiarization] = useState(false);
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
   const [transcript, setTranscript] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -127,6 +133,8 @@ export function TranscriptionWorkbench() {
     setAudioToolStatus("idle");
     setAudioToolProgress(0);
     setAudioToolMessage("");
+    setAudioDiagnostics(null);
+    setRequestDebug(null);
     setTranscript("");
     setMessage("");
     setUploadProgress(null);
@@ -170,6 +178,7 @@ export function TranscriptionWorkbench() {
         updateAudioToolProgress,
       );
       setFile(result.file);
+      setAudioDiagnostics(result.diagnostics);
       setFileError("");
       setAudioToolStatus("done");
       setAudioToolProgress(1);
@@ -181,6 +190,7 @@ export function TranscriptionWorkbench() {
       setMessage("");
       setTranscript("");
     } catch (error) {
+      if (error instanceof AudioDiagnosticError) setAudioDiagnostics(error.report);
       setAudioToolStatus("error");
       setAudioToolMessage(error instanceof Error ? error.message : "音频压缩失败。");
     }
@@ -192,8 +202,10 @@ export function TranscriptionWorkbench() {
     setAudioToolProgress(0);
     setAudioToolMessage("正在准备浏览器音频处理器…");
     try {
-      const repairedFile = await repairAudioAsWav(file, updateAudioToolProgress);
+      const result = await repairAudioAsWav(file, updateAudioToolProgress);
+      const repairedFile = result.file;
       setFile(repairedFile);
+      setAudioDiagnostics(result.diagnostics);
       setFileError("");
       setAudioToolStatus("done");
       setAudioToolProgress(1);
@@ -204,8 +216,27 @@ export function TranscriptionWorkbench() {
       setMessage("");
       setTranscript("");
     } catch (error) {
+      if (error instanceof AudioDiagnosticError) setAudioDiagnostics(error.report);
       setAudioToolStatus("error");
       setAudioToolMessage(error instanceof Error ? error.message : "音频修复失败。");
+    }
+  };
+
+  const diagnoseSelectedAudio = async () => {
+    if (!file) return;
+    setAudioToolStatus("loading");
+    setAudioToolProgress(0);
+    setAudioToolMessage("正在准备完整解码扫描…");
+    try {
+      const report = await diagnoseAudioFile(file, updateAudioToolProgress);
+      setAudioDiagnostics(report);
+      setAudioToolStatus("done");
+      setAudioToolProgress(1);
+      setAudioToolMessage("深度检查通过：整段文件可被 FFmpeg 完整解码，SHA-256 已记录。");
+    } catch (error) {
+      if (error instanceof AudioDiagnosticError) setAudioDiagnostics(error.report);
+      setAudioToolStatus("error");
+      setAudioToolMessage(error instanceof Error ? error.message : "深度音频检查失败。");
     }
   };
 
@@ -222,6 +253,8 @@ export function TranscriptionWorkbench() {
     setAudioToolStatus("idle");
     setAudioToolProgress(0);
     setAudioToolMessage("已恢复最初选择的文件。");
+    setAudioDiagnostics(null);
+    setRequestDebug(null);
     setStatus("ready");
   };
 
@@ -235,9 +268,21 @@ export function TranscriptionWorkbench() {
     window.setTimeout(() => URL.revokeObjectURL(href), 0);
   };
 
-  const effectiveModel = speakerDiarization
-    ? "gpt-4o-transcribe-diarize"
-    : model;
+  const copyDiagnostics = async () => {
+    const debugBundle = {
+      local_audio: audioDiagnostics,
+      openai_response: requestDebug,
+      submitted_request: requestPreview,
+    };
+    await navigator.clipboard.writeText(JSON.stringify(debugBundle, null, 2));
+    setDiagnosticCopied(true);
+    window.setTimeout(() => setDiagnosticCopied(false), 1600);
+  };
+
+  // The selected model is authoritative. Speaker diarization is a capability
+  // of gpt-4o-transcribe-diarize, not an independent API switch.
+  const effectiveModel = model;
+  const speakerDiarization = effectiveModel === "gpt-4o-transcribe-diarize";
   const availableResponseFormats = responseFormatsFor(effectiveModel);
   const effectiveResponseFormat = availableResponseFormats.includes(responseFormat)
     ? responseFormat
@@ -323,6 +368,7 @@ export function TranscriptionWorkbench() {
     const controller = new AbortController();
     abortRef.current = controller;
     setStatus("uploading");
+    setRequestDebug(null);
     setUploadProgress({
       loaded: 0,
       total: file.size,
@@ -344,6 +390,7 @@ export function TranscriptionWorkbench() {
           ? (partialText) => setTranscript(partialText)
           : undefined,
         onUploadProgress: setUploadProgress,
+        onRequestDebug: setRequestDebug,
         signal: controller.signal,
       });
       setTranscript(result);
@@ -386,6 +433,8 @@ export function TranscriptionWorkbench() {
     setAudioToolStatus("idle");
     setAudioToolProgress(0);
     setAudioToolMessage("");
+    setAudioDiagnostics(null);
+    setRequestDebug(null);
     setTranscript("");
     setMessage("");
     setUploadProgress(null);
@@ -545,6 +594,13 @@ export function TranscriptionWorkbench() {
                   >
                     兼容修复为 WAV
                   </button>
+                  <button
+                    type="button"
+                    disabled={isAudioProcessing}
+                    onClick={diagnoseSelectedAudio}
+                  >
+                    深度检查文件
+                  </button>
                   {isAudioProcessing && (
                     <button type="button" onClick={cancelProcessing}>取消处理</button>
                   )}
@@ -590,6 +646,7 @@ export function TranscriptionWorkbench() {
               <label><span>模型</span>
                 <select value={model} onChange={(event) => setModel(event.target.value)}>
                   <option value="gpt-transcribe">OpenAI: GPT Transcribe · 推荐</option>
+                  <option value="gpt-4o-transcribe-diarize">GPT-4o Transcribe Diarize · 说话人标签</option>
                   <option value="gpt-4o-mini-transcribe">GPT-4o mini Transcribe</option>
                   <option value="gpt-4o-transcribe">GPT-4o Transcribe</option>
                   <option value="whisper-1">Whisper-1 · 兼容原项目</option>
@@ -632,11 +689,11 @@ export function TranscriptionWorkbench() {
 
             <p className="field-note model-note">
               {effectiveModel === "gpt-transcribe"
-                ? "GPT Transcribe 支持多个语言代码（逗号分隔）和关键词提示。"
+                ? "GPT Transcribe 可转写多人对话，但不会返回可靠的说话人标签；支持多个语言代码和关键词提示。"
                 : effectiveModel === "whisper-1"
-                  ? "Whisper 按整段提交；网页会省略 chunking_strategy，以匹配本地 Python 调用。"
+                  ? "Whisper 可转写多人对话，但不会返回可靠的说话人标签；网页会按整段提交。"
                   : speakerDiarization
-                    ? "多人模式固定使用 Diarized JSON，并要求启用语音分段。"
+                    ? "说话人分离由当前模型直接提供：固定使用 Diarized JSON；人数无需填写，模型会自动判断。"
                     : "此模型只使用第一个语言代码，并固定返回 JSON。"}
             </p>
 
@@ -700,19 +757,19 @@ export function TranscriptionWorkbench() {
             />
 
             <div className="recognition-options" aria-label="高级识别选项">
-              <label className="option-card" htmlFor="speaker-diarization">
-                <input
-                  id="speaker-diarization"
-                  type="checkbox"
-                  aria-label="区分说话人"
-                  checked={speakerDiarization}
-                  onChange={(event) => setSpeakerDiarization(event.target.checked)}
-                />
-                <span>
-                  <strong>区分说话人</strong>
-                  <small>自动识别人数，并标记为说话人 A、B、C…</small>
+              <div className={`option-card capability-card ${speakerDiarization ? "is-active" : ""}`}>
+                <span className="capability-indicator" aria-hidden="true">
+                  {speakerDiarization ? "✓" : "—"}
                 </span>
-              </label>
+                <span>
+                  <strong>{speakerDiarization ? "已启用说话人分离" : "普通多人转写"}</strong>
+                  <small>
+                    {speakerDiarization
+                      ? "自动判断人数并标记说话人；API 没有“人数”参数"
+                      : "可识别多人说出的内容，但不会标记每句话属于谁"}
+                  </small>
+                </span>
+              </div>
 
               {speakerDiarization && (
                 <label className="option-card" htmlFor="include-speaker-timestamps">
@@ -849,6 +906,28 @@ export function TranscriptionWorkbench() {
                 <span>{file?.name}</span>
               </div>
             </div>
+          )}
+
+          {(audioDiagnostics || requestDebug) && (
+            <details className="request-preview debug-preview">
+              <summary>
+                <span>查看深度诊断信息</span>
+                <small>SHA-256 / 完整解码 / OpenAI Request ID</small>
+              </summary>
+              <div className="debug-preview-toolbar">
+                <span>
+                  本地解码：{audioDiagnostics?.ffmpeg_full_decode === "passed" ? "通过" : audioDiagnostics ? "失败" : "未运行"}
+                </span>
+                <button type="button" onClick={copyDiagnostics}>
+                  {diagnosticCopied ? "已复制" : "复制诊断 JSON"}
+                </button>
+              </div>
+              <pre><code>{JSON.stringify({
+                local_audio: audioDiagnostics,
+                openai_response: requestDebug,
+                submitted_request: requestPreview,
+              }, null, 2)}</code></pre>
+            </details>
           )}
         </div>
 

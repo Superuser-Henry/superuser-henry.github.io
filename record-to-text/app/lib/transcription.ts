@@ -31,6 +31,7 @@ export type TranscriptionOptions = TranscriptionRequestOptions & {
   apiKey: string;
   onPartialTranscript?: (text: string) => void;
   onUploadProgress?: (progress: UploadProgress) => void;
+  onRequestDebug?: (debug: RequestDebugInfo) => void;
   signal?: AbortSignal;
 };
 
@@ -39,6 +40,16 @@ export type UploadProgress = {
   total: number;
   percent: number;
   computable: boolean;
+};
+
+export type RequestDebugInfo = {
+  client_request_id: string;
+  server_request_id: string | null;
+  http_status: number;
+  openai_processing_ms: string | null;
+  openai_version: string | null;
+  response_content_type: string | null;
+  captured_at: string;
 };
 
 type OpenAIErrorBody = {
@@ -94,16 +105,20 @@ export async function transcribeAudio({
   signal,
   onPartialTranscript,
   onUploadProgress,
+  onRequestDebug,
   ...requestOptions
 }: TranscriptionOptions): Promise<string> {
   const { body } = buildRequestParts(requestOptions);
+  const clientRequestId = crypto.randomUUID();
 
   if (!requestOptions.stream || requestOptions.model === "whisper-1") {
     const raw = await sendTranscriptionWithUploadProgress(
       body,
       apiKey,
+      clientRequestId,
       signal,
       onUploadProgress,
+      onRequestDebug,
     );
     return parseTranscriptionResponse(raw, requestOptions);
   }
@@ -116,14 +131,21 @@ export async function transcribeAudio({
   });
   const response = await fetch(ENDPOINT, {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey.trim()}` },
+    headers: {
+      Authorization: `Bearer ${apiKey.trim()}`,
+      "X-Client-Request-Id": clientRequestId,
+    },
     body,
     signal,
   });
 
-  if (!response.ok) {
-    throw await createRequestError(response);
-  }
+  const requestDebug = debugInfoFromHeaders(
+    clientRequestId,
+    response.status,
+    (name) => response.headers.get(name),
+  );
+  onRequestDebug?.(requestDebug);
+  if (!response.ok) throw await createRequestError(response, requestDebug);
 
   onUploadProgress?.({
     loaded: requestOptions.file.size,
@@ -172,8 +194,10 @@ function parseTranscriptionResponse(
 function sendTranscriptionWithUploadProgress(
   body: FormData,
   apiKey: string,
+  clientRequestId: string,
   signal?: AbortSignal,
   onUploadProgress?: (progress: UploadProgress) => void,
+  onRequestDebug?: (debug: RequestDebugInfo) => void,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
@@ -182,6 +206,7 @@ function sendTranscriptionWithUploadProgress(
 
     request.open("POST", ENDPOINT);
     request.setRequestHeader("Authorization", `Bearer ${apiKey.trim()}`);
+    request.setRequestHeader("X-Client-Request-Id", clientRequestId);
     request.upload.onprogress = (event) => {
       const total = event.lengthComputable ? event.total : 0;
       onUploadProgress?.({
@@ -201,10 +226,16 @@ function sendTranscriptionWithUploadProgress(
     };
     request.onload = () => {
       cleanup();
+      const debug = debugInfoFromHeaders(
+        clientRequestId,
+        request.status,
+        (name) => request.getResponseHeader(name),
+      );
+      onRequestDebug?.(debug);
       if (request.status >= 200 && request.status < 300) {
         resolve(request.responseText);
       } else {
-        reject(createRequestErrorFromRaw(request.status, request.responseText));
+        reject(createRequestErrorFromRaw(request.status, request.responseText, debug));
       }
     };
     request.onerror = () => {
@@ -223,6 +254,22 @@ function sendTranscriptionWithUploadProgress(
     signal?.addEventListener("abort", abortRequest, { once: true });
     request.send(body);
   });
+}
+
+function debugInfoFromHeaders(
+  clientRequestId: string,
+  status: number,
+  getHeader: (name: string) => string | null,
+): RequestDebugInfo {
+  return {
+    client_request_id: clientRequestId,
+    server_request_id: getHeader("x-request-id"),
+    http_status: status,
+    openai_processing_ms: getHeader("openai-processing-ms"),
+    openai_version: getHeader("openai-version"),
+    response_content_type: getHeader("content-type"),
+    captured_at: new Date().toISOString(),
+  };
 }
 
 function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
@@ -310,12 +357,19 @@ function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
   };
 }
 
-async function createRequestError(response: Response): Promise<Error> {
+async function createRequestError(
+  response: Response,
+  debug?: RequestDebugInfo,
+): Promise<Error> {
   const raw = await response.text();
-  return createRequestErrorFromRaw(response.status, raw);
+  return createRequestErrorFromRaw(response.status, raw, debug);
 }
 
-function createRequestErrorFromRaw(status: number, raw: string): Error {
+function createRequestErrorFromRaw(
+  status: number,
+  raw: string,
+  debug?: RequestDebugInfo,
+): Error {
   let payload: OpenAIErrorBody = {};
   try {
     payload = JSON.parse(raw) as OpenAIErrorBody;
@@ -328,6 +382,8 @@ function createRequestErrorFromRaw(status: number, raw: string): Error {
     apiError?.param ? `参数：${apiError.param}` : "",
     apiError?.code ? `代码：${apiError.code}` : "",
     apiError?.type ? `类型：${apiError.type}` : "",
+    debug?.server_request_id ? `Request ID：${debug.server_request_id}` : "",
+    debug?.client_request_id ? `Client Request ID：${debug.client_request_id}` : "",
   ].filter(Boolean);
   const message = apiError?.message || raw.trim() || "未返回错误说明";
   return new Error(

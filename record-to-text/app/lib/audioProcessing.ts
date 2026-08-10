@@ -23,6 +23,26 @@ export interface CompressedAudioResult {
   file: File;
   durationSeconds: number;
   targetBitrateKbps: number;
+  diagnostics: AudioDiagnosticReport;
+}
+
+export interface RepairedAudioResult {
+  file: File;
+  diagnostics: AudioDiagnosticReport;
+}
+
+export interface AudioDiagnosticReport {
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  duration_seconds: number | null;
+  sha256: string;
+  header_hex: string;
+  trailer_hex: string;
+  ffmpeg_full_decode: "passed" | "failed";
+  ffmpeg_exit_code: number;
+  ffmpeg_errors: string[];
+  checked_at: string;
 }
 
 async function verifyProcessedDuration(
@@ -55,6 +75,24 @@ function uint8ArrayToBlobPart(data: Uint8Array): ArrayBuffer {
     data.byteOffset,
     data.byteOffset + data.byteLength,
   ) as ArrayBuffer;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(" ");
+}
+
+async function fileFingerprint(file: File): Promise<{
+  sha256: string;
+  headerHex: string;
+  trailerHex: string;
+}> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return {
+    sha256: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""),
+    headerHex: bytesToHex(bytes.slice(0, 24)),
+    trailerHex: bytesToHex(bytes.slice(Math.max(0, bytes.length - 24))),
+  };
 }
 
 async function loadEngine(
@@ -176,6 +214,84 @@ async function processWithEngine(
   }
 }
 
+export async function diagnoseAudioFile(
+  file: File,
+  onProgress?: (progress: AudioProcessingProgress) => void,
+): Promise<AudioDiagnosticReport> {
+  const ffmpeg = await loadEngine(onProgress);
+  const inputName = `diagnostic-${crypto.randomUUID()}.${safeExtension(file.name)}`;
+  const { fetchFile } = await import("@ffmpeg/util");
+  const errors: string[] = [];
+  const logHandler = ({ type, message }: { type: string; message: string }) => {
+    if (type === "stderr" && message.trim()) errors.push(message.trim());
+  };
+  const progressHandler = ({ progress }: { progress: number }) => {
+    onProgress?.({
+      stage: "processing",
+      progress: Math.max(0, Math.min(1, progress)),
+      message: "正在完整解码扫描音频并计算 SHA-256…",
+    });
+  };
+
+  ffmpeg.on("log", logHandler);
+  ffmpeg.on("progress", progressHandler);
+  try {
+    await ffmpeg.writeFile(inputName, await fetchFile(file));
+    const exitCode = await ffmpeg.exec([
+      "-v",
+      "error",
+      "-xerror",
+      "-err_detect",
+      "explode",
+      "-i",
+      inputName,
+      "-map",
+      "0:a:0",
+      "-f",
+      "null",
+      "-",
+    ]);
+    let durationSeconds: number | null = null;
+    try {
+      durationSeconds = await readAudioDuration(file);
+    } catch {
+      // Full FFmpeg decode is the authoritative local check in this report.
+    }
+    const fingerprint = await fileFingerprint(file);
+    const report: AudioDiagnosticReport = {
+      file_name: file.name,
+      mime_type: file.type || "application/octet-stream",
+      size_bytes: file.size,
+      duration_seconds: durationSeconds,
+      sha256: fingerprint.sha256,
+      header_hex: fingerprint.headerHex,
+      trailer_hex: fingerprint.trailerHex,
+      ffmpeg_full_decode: exitCode === 0 ? "passed" : "failed",
+      ffmpeg_exit_code: exitCode,
+      ffmpeg_errors: exitCode === 0 ? [] : errors.slice(-20),
+      checked_at: new Date().toISOString(),
+    };
+    if (exitCode !== 0) {
+      throw new AudioDiagnosticError("完整解码扫描失败，文件可能被截断或包含损坏帧。", report);
+    }
+    return report;
+  } finally {
+    ffmpeg.off("log", logHandler);
+    ffmpeg.off("progress", progressHandler);
+    await ffmpeg.deleteFile(inputName).catch(() => undefined);
+  }
+}
+
+export class AudioDiagnosticError extends Error {
+  constructor(
+    message: string,
+    public readonly report: AudioDiagnosticReport,
+  ) {
+    super(message);
+    this.name = "AudioDiagnosticError";
+  }
+}
+
 export async function compressAudioForUpload(
   file: File,
   targetMb: number,
@@ -219,13 +335,14 @@ export async function compressAudioForUpload(
     onProgress,
   );
   await verifyProcessedDuration(output, durationSeconds);
-  return { file: output, durationSeconds, targetBitrateKbps };
+  const diagnostics = await diagnoseAudioFile(output, onProgress);
+  return { file: output, durationSeconds, targetBitrateKbps, diagnostics };
 }
 
 export async function repairAudioAsWav(
   file: File,
   onProgress?: (progress: AudioProcessingProgress) => void,
-): Promise<File> {
+): Promise<RepairedAudioResult> {
   const output = await processWithEngine(
     file,
     `${baseName(file.name)}-repaired.wav`,
@@ -246,7 +363,8 @@ export async function repairAudioAsWav(
     onProgress,
   );
   await verifyProcessedDuration(output);
-  return output;
+  const diagnostics = await diagnoseAudioFile(output, onProgress);
+  return { file: output, diagnostics };
 }
 
 export function cancelAudioProcessing(): void {

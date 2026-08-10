@@ -23,7 +23,10 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
   assert.match(workbench, /value="gpt-transcribe"/);
   assert.match(workbench, /OpenAI: GPT Transcribe · 推荐/);
   assert.match(workbench, /gpt-4o-transcribe-diarize/);
-  assert.match(workbench, /区分说话人/);
+  assert.match(workbench, /已启用说话人分离/);
+  assert.match(workbench, /const effectiveModel = model/);
+  assert.match(workbench, /API 没有“人数”参数/);
+  assert.doesNotMatch(workbench, /speakerDiarization\s*\?\s*"gpt-4o-transcribe-diarize"/);
   assert.match(workbench, /显示分段时间/);
   assert.match(workbench, /随机度/);
   assert.match(workbench, /关键词提示/);
@@ -35,6 +38,9 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
   assert.match(workbench, /兼容修复为 WAV/);
   assert.match(workbench, /最低码率/);
   assert.match(workbench, /仅在本机处理/);
+  assert.match(workbench, /深度检查文件/);
+  assert.match(workbench, /查看深度诊断信息/);
+  assert.match(workbench, /复制诊断 JSON/);
   assert.match(workbench, /音频上传进度/);
   assert.match(workbench, /正在上传音频到 OpenAI/);
   assert.match(workbench, /JSON\.stringify\(requestPreview/);
@@ -61,6 +67,10 @@ test("processes oversized audio locally with lazy-loaded ffmpeg", async () => {
   assert.match(processor, /"-ac",\s*\n\s*"1"/);
   assert.match(processor, /"-c:a",\s*\n\s*"pcm_s16le"/);
   assert.match(processor, /verifyProcessedDuration/);
+  assert.match(processor, /diagnoseAudioFile/);
+  assert.match(processor, /SHA-256/);
+  assert.match(processor, /"-xerror"/);
+  assert.match(processor, /ffmpeg_full_decode/);
   assert.match(processor, /CORE_BASE_URLS/);
   assert.match(packageJson, /@ffmpeg\/ffmpeg/);
   assert.match(packageJson, /@ffmpeg\/util/);
@@ -86,6 +96,9 @@ test("formats diarized responses and enables automatic chunking", async () => {
   assert.match(transcription, /XMLHttpRequest/);
   assert.match(transcription, /request\.upload\.onprogress/);
   assert.match(transcription, /onUploadProgress/);
+  assert.match(transcription, /X-Client-Request-Id/);
+  assert.match(transcription, /x-request-id/);
+  assert.match(transcription, /openai-processing-ms/);
   assert.match(transcription, /authorization: "Bearer \[hidden\]"/);
   assert.match(transcription, /formatDiarizedTranscript/);
   assert.match(transcription, /说话人/);
