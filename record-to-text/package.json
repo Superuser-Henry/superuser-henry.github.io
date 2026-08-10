@@ -13,6 +13,8 @@
     "lint": "eslint . --ignore-pattern dist"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },

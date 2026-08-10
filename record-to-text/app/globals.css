@@ -426,6 +426,172 @@ textarea:focus-visible,
   font-size: 0.74rem;
 }
 
+.audio-tools {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+
+.audio-tools-heading,
+.audio-tool-actions,
+.processed-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.audio-tools-heading {
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.audio-tools-heading h3 {
+  margin: 2px 0 0;
+  font-size: 0.91rem;
+}
+
+.local-only-badge {
+  padding: 4px 8px;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.compression-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.compression-controls > label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.compression-controls select,
+.number-suffix-field {
+  width: 100%;
+  min-height: 39px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.compression-controls select {
+  padding: 0 10px;
+  color: var(--text);
+}
+
+.number-suffix-field {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.number-suffix-field input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.number-suffix-field > span {
+  padding: 0 10px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.audio-tool-note,
+.audio-engine-note {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  line-height: 1.6;
+}
+
+.repair-note {
+  margin-top: 8px;
+}
+
+.audio-tool-actions {
+  flex-wrap: wrap;
+  margin-top: 13px;
+}
+
+.audio-tool-actions button,
+.processed-file-actions button {
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  padding: 8px 11px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 680;
+}
+
+.audio-tool-actions .audio-tool-primary {
+  border-color: var(--text);
+  background: var(--text);
+  color: white;
+}
+
+.audio-tool-actions button:disabled,
+.processed-file-actions button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.audio-tool-status {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.audio-tool-status.is-error {
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.audio-tool-status progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin-bottom: 8px;
+  accent-color: var(--accent);
+}
+
+.processed-file-actions {
+  margin-top: 11px;
+}
+
+.processed-file-actions button {
+  border: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: var(--accent);
+}
+
+.audio-engine-note {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: 1.35fr 0.65fr;
@@ -974,6 +1140,14 @@ select {
 
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compression-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .audio-tools-heading {
+    align-items: flex-start;
   }
 
   .recognition-options {

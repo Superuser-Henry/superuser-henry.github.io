@@ -10,10 +10,19 @@ import {
 } from "react";
 import {
   baseName,
+  DEFAULT_COMPRESSION_TARGET_MB,
+  DEFAULT_MINIMUM_BITRATE_KBPS,
   formatBytes,
   OPENAI_FILE_LIMIT,
+  recommendedTargetMb,
   validateAudio,
 } from "./lib/audio";
+import {
+  AudioProcessingProgress,
+  cancelAudioProcessing,
+  compressAudioForUpload,
+  repairAudioAsFlac,
+} from "./lib/audioProcessing";
 import {
   ChunkingStrategy,
   ResponseFormat,
@@ -56,6 +65,7 @@ function responseFormatsFor(model: string): ResponseFormat[] {
 }
 
 type Status = "idle" | "ready" | "uploading" | "done" | "error";
+type AudioToolStatus = "idle" | "loading" | "processing" | "done" | "error";
 
 const statusCopy: Record<Status, string> = {
   idle: "等待音频",
@@ -69,7 +79,13 @@ export function TranscriptionWorkbench() {
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
+  const [targetSizeMb, setTargetSizeMb] = useState(DEFAULT_COMPRESSION_TARGET_MB);
+  const [minimumBitrateKbps, setMinimumBitrateKbps] = useState(DEFAULT_MINIMUM_BITRATE_KBPS);
+  const [audioToolStatus, setAudioToolStatus] = useState<AudioToolStatus>("idle");
+  const [audioToolProgress, setAudioToolProgress] = useState(0);
+  const [audioToolMessage, setAudioToolMessage] = useState("");
   const [model, setModel] = useState("gpt-transcribe");
   const [languageHints, setLanguageHints] = useState("zh");
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
@@ -94,13 +110,21 @@ export function TranscriptionWorkbench() {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    cancelAudioProcessing();
+  }, []);
 
   const acceptFile = (nextFile?: File) => {
     if (!nextFile) return;
     const validation = validateAudio(nextFile);
     setFileError(validation || "");
     setFile(validation ? null : nextFile);
+    setOriginalFile(validation ? null : nextFile);
+    setTargetSizeMb(recommendedTargetMb(nextFile.size));
+    setAudioToolStatus("idle");
+    setAudioToolProgress(0);
+    setAudioToolMessage("");
     setTranscript("");
     setMessage("");
     setStatus(validation ? "error" : "ready");
@@ -122,6 +146,90 @@ export function TranscriptionWorkbench() {
       event.preventDefault();
       inputRef.current?.click();
     }
+  };
+
+  const updateAudioToolProgress = (progress: AudioProcessingProgress) => {
+    setAudioToolStatus(progress.stage);
+    setAudioToolProgress(progress.progress);
+    setAudioToolMessage(progress.message);
+  };
+
+  const compressSelectedAudio = async () => {
+    if (!file) return;
+    setAudioToolStatus("loading");
+    setAudioToolProgress(0);
+    setAudioToolMessage("正在准备浏览器音频处理器…");
+    try {
+      const result = await compressAudioForUpload(
+        file,
+        targetSizeMb,
+        minimumBitrateKbps,
+        updateAudioToolProgress,
+      );
+      setFile(result.file);
+      setFileError("");
+      setAudioToolStatus("done");
+      setAudioToolProgress(1);
+      setAudioToolMessage(
+        `已转为单声道 Opus VBR：目标平均 ${result.targetBitrateKbps} kbps，` +
+        `${formatBytes(file.size)} → ${formatBytes(result.file.size)}。`,
+      );
+      setStatus("ready");
+      setMessage("");
+      setTranscript("");
+    } catch (error) {
+      setAudioToolStatus("error");
+      setAudioToolMessage(error instanceof Error ? error.message : "音频压缩失败。");
+    }
+  };
+
+  const repairSelectedAudio = async () => {
+    if (!file) return;
+    setAudioToolStatus("loading");
+    setAudioToolProgress(0);
+    setAudioToolMessage("正在准备浏览器音频处理器…");
+    try {
+      const repairedFile = await repairAudioAsFlac(file, updateAudioToolProgress);
+      setFile(repairedFile);
+      setFileError("");
+      setAudioToolStatus("done");
+      setAudioToolProgress(1);
+      setAudioToolMessage(
+        `已重新解码并无损编码为 FLAC：${formatBytes(file.size)} → ${formatBytes(repairedFile.size)}。`,
+      );
+      setStatus("ready");
+      setMessage("");
+      setTranscript("");
+    } catch (error) {
+      setAudioToolStatus("error");
+      setAudioToolMessage(error instanceof Error ? error.message : "音频修复失败。");
+    }
+  };
+
+  const cancelProcessing = () => {
+    cancelAudioProcessing();
+    setAudioToolStatus("idle");
+    setAudioToolProgress(0);
+    setAudioToolMessage("已取消。再次处理时需要重新加载音频核心。");
+  };
+
+  const restoreOriginalAudio = () => {
+    if (!originalFile) return;
+    setFile(originalFile);
+    setAudioToolStatus("idle");
+    setAudioToolProgress(0);
+    setAudioToolMessage("已恢复最初选择的文件。");
+    setStatus("ready");
+  };
+
+  const downloadProcessedAudio = () => {
+    if (!file) return;
+    const href = URL.createObjectURL(file);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = file.name;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(href), 0);
   };
 
   const effectiveModel = speakerDiarization
@@ -176,11 +284,25 @@ export function TranscriptionWorkbench() {
         method: "POST",
         body: { file: "[选择录音后显示完整参数]", model: effectiveModel },
       };
-  const canSubmit = Boolean(apiKey.trim() && file && status !== "uploading");
+  const isAudioProcessing = audioToolStatus === "loading" || audioToolStatus === "processing";
+  const fileExceedsUploadLimit = Boolean(file && file.size > OPENAI_FILE_LIMIT);
+  const fileWasProcessed = Boolean(file && originalFile && file !== originalFile);
+  const canSubmit = Boolean(
+    apiKey.trim() &&
+    file &&
+    !fileExceedsUploadLimit &&
+    !isAudioProcessing &&
+    status !== "uploading",
+  );
 
   const runTranscription = async () => {
     if (!file || !apiKey.trim()) {
       setMessage("请先填写 API Key 并选择音频文件。");
+      setStatus("error");
+      return;
+    }
+    if (file.size > OPENAI_FILE_LIMIT) {
+      setMessage("文件仍超过 25 MB。请先使用网页端压缩，或降低目标大小。");
       setStatus("error");
       return;
     }
@@ -237,8 +359,13 @@ export function TranscriptionWorkbench() {
 
   const reset = () => {
     abortRef.current?.abort();
+    cancelAudioProcessing();
     setFile(null);
+    setOriginalFile(null);
     setFileError("");
+    setAudioToolStatus("idle");
+    setAudioToolProgress(0);
+    setAudioToolMessage("");
     setTranscript("");
     setMessage("");
     setStatus("idle");
@@ -305,7 +432,7 @@ export function TranscriptionWorkbench() {
               ref={inputRef}
               className="visually-hidden"
               type="file"
-              accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm,audio/*"
+              accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.flac,.ogg,.wav,.webm,audio/*"
               onChange={handleFileInput}
             />
             <div
@@ -324,14 +451,113 @@ export function TranscriptionWorkbench() {
               {file ? (
                 <div className="file-summary">
                   <strong>{file.name}</strong>
-                  <span>{formatBytes(file.size)} · 准备上传</span>
+                  <span>
+                    {formatBytes(file.size)} · {fileExceedsUploadLimit ? "需要压缩" : "准备上传"}
+                  </span>
                 </div>
               ) : (
                 <div><strong>把音频拖到这里</strong><span>或点击浏览文件</span></div>
               )}
-              <span className="file-limit">MP3 · M4A · WAV · WEBM · 最大 {formatBytes(OPENAI_FILE_LIMIT)}</span>
+              <span className="file-limit">MP3 · M4A · FLAC · OGG · WAV · WEBM · API 上限 {formatBytes(OPENAI_FILE_LIMIT)}</span>
             </div>
             {fileError && <p className="error-copy" role="alert">{fileError}</p>}
+            {file && (
+              <div className="audio-tools" aria-label="浏览器端音频处理">
+                <div className="audio-tools-heading">
+                  <div>
+                    <p className="overline">LOCAL AUDIO LAB</p>
+                    <h3>压缩与兼容修复</h3>
+                  </div>
+                  <span className="local-only-badge">仅在本机处理</span>
+                </div>
+
+                <div className="compression-controls">
+                  <label>
+                    <span>压缩目标</span>
+                    <div className="number-suffix-field">
+                      <input
+                        type="number"
+                        min="1"
+                        max="24"
+                        step="0.5"
+                        value={targetSizeMb}
+                        disabled={isAudioProcessing}
+                        onChange={(event) => setTargetSizeMb(Math.max(1, Math.min(24, Number(event.target.value))))}
+                        aria-label="压缩目标大小 MB"
+                      />
+                      <span>MB</span>
+                    </div>
+                  </label>
+                  <label>
+                    <span>最低码率</span>
+                    <select
+                      value={minimumBitrateKbps}
+                      disabled={isAudioProcessing}
+                      onChange={(event) => setMinimumBitrateKbps(Number(event.target.value))}
+                    >
+                      <option value="16">16 kbps · 极长录音</option>
+                      <option value="24">24 kbps · 推荐</option>
+                      <option value="32">32 kbps · 更清晰</option>
+                      <option value="48">48 kbps · 高保真语音</option>
+                    </select>
+                  </label>
+                </div>
+
+                <p className="audio-tool-note">
+                  压缩输出为 16 kHz 单声道 WebM/Opus。码率按时长和目标大小计算，采用 VBR 动态分配；
+                  最低码率可能使最终文件略大于目标。
+                </p>
+
+                <div className="audio-tool-actions">
+                  <button
+                    className="audio-tool-primary"
+                    type="button"
+                    disabled={isAudioProcessing}
+                    onClick={compressSelectedAudio}
+                  >
+                    压缩到约 {targetSizeMb} MB
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isAudioProcessing}
+                    onClick={repairSelectedAudio}
+                  >
+                    无损修复为 FLAC
+                  </button>
+                  {isAudioProcessing && (
+                    <button type="button" onClick={cancelProcessing}>取消处理</button>
+                  )}
+                </div>
+
+                <p className="audio-tool-note repair-note">
+                  修复会完整解码后重新编码为 FLAC，不会恢复源文件已经丢失的细节，但不会造成第二次有损压缩。
+                  FLAC 可能比原文件更大。
+                </p>
+
+                {(audioToolMessage || isAudioProcessing) && (
+                  <div
+                    className={`audio-tool-status ${audioToolStatus === "error" ? "is-error" : ""}`}
+                    role={audioToolStatus === "error" ? "alert" : "status"}
+                  >
+                    {isAudioProcessing && (
+                      <progress max="1" value={audioToolProgress || undefined} />
+                    )}
+                    <span>{audioToolMessage}</span>
+                  </div>
+                )}
+
+                {fileWasProcessed && !isAudioProcessing && (
+                  <div className="processed-file-actions">
+                    <button type="button" onClick={downloadProcessedAudio}>下载处理后的音频</button>
+                    <button type="button" onClick={restoreOriginalAudio}>恢复原文件</button>
+                  </div>
+                )}
+
+                <p className="audio-engine-note">
+                  首次点击会从 CDN 按需加载约 31 MB 的单线程 ffmpeg.wasm；GitHub Pages 无需后端。
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="panel settings-panel">

@@ -33,7 +33,10 @@ npm run build
 
 ## 支持的能力
 
-- 拖放或选择 MP3、MP4、MPEG、MPGA、M4A、WAV、WEBM。
+- 拖放或选择 MP3、MP4、MPEG、MPGA、M4A、FLAC、OGG、WAV、WEBM。
+- 在浏览器内按目标大小压缩为 16 kHz 单声道 WebM/Opus；按音频时长计算平均目标码率，并使用 VBR 动态分配。
+- 可设置最低码率（默认 24 kbps），避免为了追求体积把长录音压得不可用。
+- 可完整解码并重新无损编码为 FLAC，修复不规范容器或解码兼容问题，避免二次有损压缩。
 - 默认使用 OpenAI GPT Transcribe，也可选择 GPT-4o mini Transcribe、GPT-4o Transcribe 或 Whisper-1。
 - 按模型配置语言提示、关键词、上下文提示、temperature 和返回格式。
 - 可选择自动或手动 Server VAD，并调整阈值、前置保留和静音判停时间。
@@ -47,7 +50,11 @@ npm run build
 
 ## 文件限制
 
-OpenAI 文件转写接口接受最大 25 MB 的文件。网页会在选择阶段拦截超限文件。超限录音可以继续使用仓库根目录中的 Python 压缩工具：
+OpenAI 文件转写接口接受最大 25 MB 的文件。网页允许选择超限文件，但在压缩到 25 MB 以下前不会发送。默认目标为 22 MB，为容器差异预留空间。
+
+浏览器音频处理由单线程 ffmpeg.wasm 完成。主页面不会包含 31 MB 的转码核心；首次点击“压缩”或“修复”时才会从固定版本 CDN 加载，并在当前页面会话中复用。音频处理全部发生在本机内存中。GitHub Pages 无需后端，也无需设置 `SharedArrayBuffer` 安全响应头。
+
+如浏览器设备性能不足，仍可使用仓库根目录中的 Python 压缩工具：
 
 ```powershell
 python ..\compress_audio.py .\recording.wav --target-mb 23

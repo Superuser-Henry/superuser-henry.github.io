@@ -1,4 +1,6 @@
 export const OPENAI_FILE_LIMIT = 25 * 1024 * 1024;
+export const DEFAULT_COMPRESSION_TARGET_MB = 22;
+export const DEFAULT_MINIMUM_BITRATE_KBPS = 24;
 
 export const SUPPORTED_EXTENSIONS = [
   "mp3",
@@ -6,6 +8,8 @@ export const SUPPORTED_EXTENSIONS = [
   "mpeg",
   "mpga",
   "m4a",
+  "flac",
+  "ogg",
   "wav",
   "webm",
 ] as const;
@@ -31,10 +35,30 @@ export function validateAudio(file: File): string | null {
   if (!isSupportedAudio(file)) {
     return `暂不支持此格式。请选择 ${SUPPORTED_EXTENSIONS.join("、")} 文件。`;
   }
-  if (file.size > OPENAI_FILE_LIMIT) {
-    return `文件为 ${formatBytes(file.size)}，超过 OpenAI 的 25 MB 上传限制。请先用原项目的压缩工具处理后再选择。`;
-  }
   return null;
+}
+
+export function recommendedTargetMb(fileSize: number): number {
+  const sizeMb = fileSize / (1024 * 1024);
+  if (sizeMb > 25) return DEFAULT_COMPRESSION_TARGET_MB;
+  return Math.max(1, Math.min(DEFAULT_COMPRESSION_TARGET_MB, Math.floor(sizeMb * 0.8)));
+}
+
+export function targetVbrBitrateKbps(
+  targetMb: number,
+  durationSeconds: number,
+  minimumKbps: number,
+): number {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    throw new Error("无法读取音频时长，不能计算目标码率。");
+  }
+
+  // Reserve roughly 4% for the WebM container. Opus still varies the bitrate
+  // from frame to frame; this value is its target average, not constant bitrate.
+  const targetAverage = Math.floor(
+    (targetMb * 1024 * 1024 * 8 * 0.96) / durationSeconds / 1000,
+  );
+  return Math.max(minimumKbps, Math.min(192, targetAverage));
 }
 
 export function baseName(filename: string): string {

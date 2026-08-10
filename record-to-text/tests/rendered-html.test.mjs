@@ -31,11 +31,36 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
   assert.match(workbench, /流式返回/);
   assert.match(workbench, /返回 Logprobs/);
   assert.match(workbench, /查看提交给模型的参数/);
+  assert.match(workbench, /压缩到约/);
+  assert.match(workbench, /无损修复为 FLAC/);
+  assert.match(workbench, /最低码率/);
+  assert.match(workbench, /仅在本机处理/);
   assert.match(workbench, /JSON\.stringify\(requestPreview/);
   assert.match(workbench, /type=\{showKey \? "text" : "password"\}/);
   assert.doesNotMatch(workbench, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(workbench, /sk-[A-Za-z0-9]{12,}/);
   assert.doesNotMatch(packageJson, /vinext|cloudflare|drizzle|next|tailwind/i);
+});
+
+test("processes oversized audio locally with lazy-loaded ffmpeg", async () => {
+  const [audio, processor, packageJson] = await Promise.all([
+    readFile(new URL("app/lib/audio.ts", root), "utf8"),
+    readFile(new URL("app/lib/audioProcessing.ts", root), "utf8"),
+    readFile(new URL("package.json", root), "utf8"),
+  ]);
+
+  assert.match(audio, /DEFAULT_COMPRESSION_TARGET_MB = 22/);
+  assert.match(audio, /DEFAULT_MINIMUM_BITRATE_KBPS = 24/);
+  assert.match(audio, /targetVbrBitrateKbps/);
+  assert.doesNotMatch(audio, /file\.size > OPENAI_FILE_LIMIT/);
+  assert.match(processor, /import\("@ffmpeg\/ffmpeg"\)/);
+  assert.match(processor, /libopus/);
+  assert.match(processor, /"-vbr",\s*\n\s*"on"/);
+  assert.match(processor, /"-ac",\s*\n\s*"1"/);
+  assert.match(processor, /"-c:a",\s*\n\s*"flac"/);
+  assert.match(processor, /CORE_BASE_URLS/);
+  assert.match(packageJson, /@ffmpeg\/ffmpeg/);
+  assert.match(packageJson, /@ffmpeg\/util/);
 });
 
 test("formats diarized responses and enables automatic chunking", async () => {
