@@ -21,7 +21,7 @@ import {
   AudioProcessingProgress,
   cancelAudioProcessing,
   compressAudioForUpload,
-  repairAudioAsFlac,
+  repairAudioAsWav,
 } from "./lib/audioProcessing";
 import {
   ChunkingStrategy,
@@ -174,7 +174,7 @@ export function TranscriptionWorkbench() {
       setAudioToolStatus("done");
       setAudioToolProgress(1);
       setAudioToolMessage(
-        `已转为单声道 Opus VBR：目标平均 ${result.targetBitrateKbps} kbps，` +
+        `已转为单声道 MP3 ABR：目标平均 ${result.targetBitrateKbps} kbps，` +
         `${formatBytes(file.size)} → ${formatBytes(result.file.size)}。`,
       );
       setStatus("ready");
@@ -192,13 +192,13 @@ export function TranscriptionWorkbench() {
     setAudioToolProgress(0);
     setAudioToolMessage("正在准备浏览器音频处理器…");
     try {
-      const repairedFile = await repairAudioAsFlac(file, updateAudioToolProgress);
+      const repairedFile = await repairAudioAsWav(file, updateAudioToolProgress);
       setFile(repairedFile);
       setFileError("");
       setAudioToolStatus("done");
       setAudioToolProgress(1);
       setAudioToolMessage(
-        `已重新解码并无损编码为 FLAC：${formatBytes(file.size)} → ${formatBytes(repairedFile.size)}。`,
+        `已重新解码为兼容 WAV PCM：${formatBytes(file.size)} → ${formatBytes(repairedFile.size)}。`,
       );
       setStatus("ready");
       setMessage("");
@@ -453,7 +453,7 @@ export function TranscriptionWorkbench() {
               ref={inputRef}
               className="visually-hidden"
               type="file"
-              accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.flac,.ogg,.wav,.webm,audio/*"
+              accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm,audio/*"
               onChange={handleFileInput}
             />
             <div
@@ -479,7 +479,7 @@ export function TranscriptionWorkbench() {
               ) : (
                 <div><strong>把音频拖到这里</strong><span>或点击浏览文件</span></div>
               )}
-              <span className="file-limit">MP3 · M4A · FLAC · OGG · WAV · WEBM · API 上限 {formatBytes(OPENAI_FILE_LIMIT)}</span>
+              <span className="file-limit">MP3 · M4A · WAV · WEBM · API 上限 {formatBytes(OPENAI_FILE_LIMIT)}</span>
             </div>
             {fileError && <p className="error-copy" role="alert">{fileError}</p>}
             {file && (
@@ -525,7 +525,7 @@ export function TranscriptionWorkbench() {
                 </div>
 
                 <p className="audio-tool-note">
-                  压缩输出为 16 kHz 单声道 WebM/Opus。码率按时长和目标大小计算，采用 VBR 动态分配；
+                  压缩输出为 16 kHz 单声道 MP3/LAME ABR。码率按时长和目标大小计算，并在帧间动态分配；
                   最低码率可能使最终文件略大于目标。
                 </p>
 
@@ -543,7 +543,7 @@ export function TranscriptionWorkbench() {
                     disabled={isAudioProcessing}
                     onClick={repairSelectedAudio}
                   >
-                    无损修复为 FLAC
+                    兼容修复为 WAV
                   </button>
                   {isAudioProcessing && (
                     <button type="button" onClick={cancelProcessing}>取消处理</button>
@@ -551,8 +551,8 @@ export function TranscriptionWorkbench() {
                 </div>
 
                 <p className="audio-tool-note repair-note">
-                  修复会完整解码后重新编码为 FLAC，不会恢复源文件已经丢失的细节，但不会造成第二次有损压缩。
-                  FLAC 可能比原文件更大。
+                  修复会完整解码为 16 kHz 单声道 WAV PCM，不会造成第二次感知有损编码；
+                  WAV 通常会显著变大，超过 25 MB 时还需再压缩为 MP3。
                 </p>
 
                 {(audioToolMessage || isAudioProcessing) && (

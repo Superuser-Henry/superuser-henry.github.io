@@ -33,10 +33,10 @@ npm run build
 
 ## 支持的能力
 
-- 拖放或选择 MP3、MP4、MPEG、MPGA、M4A、FLAC、OGG、WAV、WEBM。
-- 在浏览器内按目标大小压缩为 16 kHz 单声道 WebM/Opus；按音频时长计算平均目标码率，并使用 VBR 动态分配。
+- 拖放或选择 OpenAI 官方支持的 MP3、MP4、MPEG、MPGA、M4A、WAV、WEBM。
+- 在浏览器内按目标大小压缩为 16 kHz 单声道 MP3；按音频时长计算目标平均码率，并使用 LAME ABR 在帧间动态分配。
 - 可设置最低码率（默认 24 kbps），避免为了追求体积把长录音压得不可用。
-- 可完整解码并重新无损编码为 FLAC，修复不规范容器或解码兼容问题，避免二次有损压缩。
+- 可完整解码为 WAV PCM，修复不规范容器或解码兼容问题；WAV 超过 25 MB 时需要再压缩为 MP3。
 - 默认使用 OpenAI GPT Transcribe，也可选择 GPT-4o mini Transcribe、GPT-4o Transcribe 或 Whisper-1。
 - 按模型配置语言提示、关键词、上下文提示、temperature 和返回格式。
 - 可选择自动或手动 Server VAD，并调整阈值、前置保留和静音判停时间。

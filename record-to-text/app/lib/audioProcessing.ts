@@ -25,6 +25,23 @@ export interface CompressedAudioResult {
   targetBitrateKbps: number;
 }
 
+async function verifyProcessedDuration(
+  file: File,
+  expectedDurationSeconds?: number,
+): Promise<number> {
+  const actualDuration = await readAudioDuration(file);
+  if (expectedDurationSeconds) {
+    const tolerance = Math.max(3, expectedDurationSeconds * 0.01);
+    if (Math.abs(actualDuration - expectedDurationSeconds) > tolerance) {
+      throw new Error(
+        `处理后的音频时长不完整（原始约 ${Math.round(expectedDurationSeconds)} 秒，` +
+        `输出约 ${Math.round(actualDuration)} 秒），已阻止上传。`,
+      );
+    }
+  }
+  return actualDuration;
+}
+
 let engine: FFmpegInstance | null = null;
 let enginePromise: Promise<FFmpegInstance> | null = null;
 
@@ -171,7 +188,7 @@ export async function compressAudioForUpload(
     durationSeconds,
     minimumBitrateKbps,
   );
-  const outputName = `${baseName(file.name)}-compressed.webm`;
+  const outputName = `${baseName(file.name)}-compressed.mp3`;
   const output = await processWithEngine(
     file,
     outputName,
@@ -184,45 +201,52 @@ export async function compressAudioForUpload(
       "-ar",
       "16000",
       "-c:a",
-      "libopus",
+      "libmp3lame",
       "-b:a",
       `${targetBitrateKbps}k`,
-      "-vbr",
-      "on",
+      "-abr",
+      "1",
       "-compression_level",
-      "10",
-      "-application",
-      "voip",
+      "2",
       "-map_metadata",
       "-1",
+      "-id3v2_version",
+      "3",
+      "-write_xing",
+      "1",
     ],
-    "audio/webm;codecs=opus",
+    "audio/mpeg",
     onProgress,
   );
+  await verifyProcessedDuration(output, durationSeconds);
   return { file: output, durationSeconds, targetBitrateKbps };
 }
 
-export async function repairAudioAsFlac(
+export async function repairAudioAsWav(
   file: File,
   onProgress?: (progress: AudioProcessingProgress) => void,
 ): Promise<File> {
-  return processWithEngine(
+  const output = await processWithEngine(
     file,
-    `${baseName(file.name)}-repaired.flac`,
+    `${baseName(file.name)}-repaired.wav`,
     [
       "-map",
       "0:a:0",
       "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      "16000",
       "-c:a",
-      "flac",
-      "-compression_level",
-      "8",
+      "pcm_s16le",
       "-map_metadata",
       "-1",
     ],
-    "audio/flac",
+    "audio/wav",
     onProgress,
   );
+  await verifyProcessedDuration(output);
+  return output;
 }
 
 export function cancelAudioProcessing(): void {

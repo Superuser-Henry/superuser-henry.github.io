@@ -32,7 +32,7 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
   assert.match(workbench, /返回 Logprobs/);
   assert.match(workbench, /查看提交给模型的参数/);
   assert.match(workbench, /压缩到约/);
-  assert.match(workbench, /无损修复为 FLAC/);
+  assert.match(workbench, /兼容修复为 WAV/);
   assert.match(workbench, /最低码率/);
   assert.match(workbench, /仅在本机处理/);
   assert.match(workbench, /音频上传进度/);
@@ -56,10 +56,11 @@ test("processes oversized audio locally with lazy-loaded ffmpeg", async () => {
   assert.match(audio, /targetVbrBitrateKbps/);
   assert.doesNotMatch(audio, /file\.size > OPENAI_FILE_LIMIT/);
   assert.match(processor, /import\("@ffmpeg\/ffmpeg"\)/);
-  assert.match(processor, /libopus/);
-  assert.match(processor, /"-vbr",\s*\n\s*"on"/);
+  assert.match(processor, /libmp3lame/);
+  assert.match(processor, /"-abr",\s*\n\s*"1"/);
   assert.match(processor, /"-ac",\s*\n\s*"1"/);
-  assert.match(processor, /"-c:a",\s*\n\s*"flac"/);
+  assert.match(processor, /"-c:a",\s*\n\s*"pcm_s16le"/);
+  assert.match(processor, /verifyProcessedDuration/);
   assert.match(processor, /CORE_BASE_URLS/);
   assert.match(packageJson, /@ffmpeg\/ffmpeg/);
   assert.match(packageJson, /@ffmpeg\/util/);

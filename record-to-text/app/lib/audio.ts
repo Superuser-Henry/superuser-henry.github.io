@@ -8,8 +8,6 @@ export const SUPPORTED_EXTENSIONS = [
   "mpeg",
   "mpga",
   "m4a",
-  "flac",
-  "ogg",
   "wav",
   "webm",
 ] as const;
@@ -58,7 +56,7 @@ export function targetVbrBitrateKbps(
   const targetAverage = Math.floor(
     (targetMb * 1024 * 1024 * 8 * 0.96) / durationSeconds / 1000,
   );
-  return Math.max(minimumKbps, Math.min(192, targetAverage));
+  return Math.max(minimumKbps, Math.min(128, targetAverage));
 }
 
 export function baseName(filename: string): string {
