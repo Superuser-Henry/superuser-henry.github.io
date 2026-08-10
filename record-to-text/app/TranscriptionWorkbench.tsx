@@ -27,6 +27,7 @@ import {
   ChunkingStrategy,
   ResponseFormat,
   TimestampGranularity,
+  UploadProgress,
   friendlyError,
   getTranscriptionRequestPreview,
   transcribeAudio,
@@ -105,6 +106,7 @@ export function TranscriptionWorkbench() {
   const [transcript, setTranscript] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [dragging, setDragging] = useState(false);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -127,6 +129,7 @@ export function TranscriptionWorkbench() {
     setAudioToolMessage("");
     setTranscript("");
     setMessage("");
+    setUploadProgress(null);
     setStatus(validation ? "error" : "ready");
   };
 
@@ -294,6 +297,16 @@ export function TranscriptionWorkbench() {
     !isAudioProcessing &&
     status !== "uploading",
   );
+  const roundedUploadPercent = Math.round(uploadProgress?.percent || 0);
+  const uploadStageLabel = status === "uploading"
+    ? roundedUploadPercent >= 100
+      ? "上传完成，OpenAI 正在处理音频"
+      : "正在上传音频到 OpenAI"
+    : status === "done"
+      ? "音频上传完成"
+      : status === "error"
+        ? roundedUploadPercent >= 100 ? "上传完成，转写阶段出错" : "上传已中断"
+        : "等待上传";
 
   const runTranscription = async () => {
     if (!file || !apiKey.trim()) {
@@ -310,6 +323,12 @@ export function TranscriptionWorkbench() {
     const controller = new AbortController();
     abortRef.current = controller;
     setStatus("uploading");
+    setUploadProgress({
+      loaded: 0,
+      total: file.size,
+      percent: 0,
+      computable: !stream || !supportsStreaming,
+    });
     setMessage(
       speakerDiarization
         ? "正在转写并区分说话人。大文件可能需要几分钟。"
@@ -324,6 +343,7 @@ export function TranscriptionWorkbench() {
         onPartialTranscript: stream && supportsStreaming
           ? (partialText) => setTranscript(partialText)
           : undefined,
+        onUploadProgress: setUploadProgress,
         signal: controller.signal,
       });
       setTranscript(result);
@@ -368,6 +388,7 @@ export function TranscriptionWorkbench() {
     setAudioToolMessage("");
     setTranscript("");
     setMessage("");
+    setUploadProgress(null);
     setStatus("idle");
   };
 
@@ -788,7 +809,9 @@ export function TranscriptionWorkbench() {
 
           <div className="action-row">
             <button className="primary-button" type="button" disabled={!canSubmit} onClick={runTranscription}>
-              {status === "uploading" ? <><span className="spinner" />正在转写</> : <>开始转写 <span aria-hidden="true">→</span></>}
+              {status === "uploading" ? (
+                <><span className="spinner" />{roundedUploadPercent < 100 ? "正在上传" : "正在转写"}</>
+              ) : <>开始转写 <span aria-hidden="true">→</span></>}
             </button>
             {status === "uploading" ? (
               <button className="text-button" type="button" onClick={() => abortRef.current?.abort()}>取消</button>
@@ -796,6 +819,37 @@ export function TranscriptionWorkbench() {
               <button className="text-button" type="button" onClick={reset}>重新选择</button>
             ) : null}
           </div>
+
+          {uploadProgress && (
+            <div className={`upload-progress-card ${status === "error" ? "is-error" : ""}`} aria-live="polite">
+              <div className="upload-progress-heading">
+                <span>{uploadStageLabel}</span>
+                <strong>
+                  {uploadProgress.computable || roundedUploadPercent >= 100
+                    ? `${roundedUploadPercent}%`
+                    : "计算中"}
+                </strong>
+              </div>
+              <progress
+                max="100"
+                value={uploadProgress.computable || roundedUploadPercent >= 100
+                  ? roundedUploadPercent
+                  : undefined}
+                aria-label="音频上传进度"
+              />
+              <div className="upload-progress-meta">
+                {uploadProgress.computable && uploadProgress.total > 0 ? (
+                  <span>
+                    {formatBytes(Math.min(uploadProgress.loaded, uploadProgress.total))}
+                    {" / "}{formatBytes(uploadProgress.total)}
+                  </span>
+                ) : (
+                  <span>流式模式下浏览器不提供精确上传字节</span>
+                )}
+                <span>{file?.name}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <section className="transcript-panel" aria-live="polite">

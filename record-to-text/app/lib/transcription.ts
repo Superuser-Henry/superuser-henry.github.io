@@ -30,7 +30,15 @@ export type TranscriptionRequestOptions = {
 export type TranscriptionOptions = TranscriptionRequestOptions & {
   apiKey: string;
   onPartialTranscript?: (text: string) => void;
+  onUploadProgress?: (progress: UploadProgress) => void;
   signal?: AbortSignal;
+};
+
+export type UploadProgress = {
+  loaded: number;
+  total: number;
+  percent: number;
+  computable: boolean;
 };
 
 type OpenAIErrorBody = {
@@ -85,9 +93,27 @@ export async function transcribeAudio({
   apiKey,
   signal,
   onPartialTranscript,
+  onUploadProgress,
   ...requestOptions
 }: TranscriptionOptions): Promise<string> {
   const { body } = buildRequestParts(requestOptions);
+
+  if (!requestOptions.stream || requestOptions.model === "whisper-1") {
+    const raw = await sendTranscriptionWithUploadProgress(
+      body,
+      apiKey,
+      signal,
+      onUploadProgress,
+    );
+    return parseTranscriptionResponse(raw, requestOptions);
+  }
+
+  onUploadProgress?.({
+    loaded: 0,
+    total: requestOptions.file.size,
+    percent: 0,
+    computable: false,
+  });
   const response = await fetch(ENDPOINT, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey.trim()}` },
@@ -99,33 +125,104 @@ export async function transcribeAudio({
     throw await createRequestError(response);
   }
 
-  if (requestOptions.stream && requestOptions.model !== "whisper-1") {
-    return readTranscriptionStream(
-      response,
-      requestOptions.speakerDiarization,
-      requestOptions.includeTimestamps,
-      onPartialTranscript,
-    );
+  onUploadProgress?.({
+    loaded: requestOptions.file.size,
+    total: requestOptions.file.size,
+    percent: 100,
+    computable: false,
+  });
+
+  return readTranscriptionStream(
+    response,
+    requestOptions.speakerDiarization,
+    requestOptions.includeTimestamps,
+    onPartialTranscript,
+  );
+}
+
+function parseTranscriptionResponse(
+  raw: string,
+  options: TranscriptionRequestOptions,
+): string {
+  if (["text", "srt", "vtt"].includes(options.responseFormat)) {
+    return raw.trim();
   }
 
-  if (["text", "srt", "vtt"].includes(requestOptions.responseFormat)) {
-    return (await response.text()).trim();
+  let payload: TranscriptionBody;
+  try {
+    payload = JSON.parse(raw) as TranscriptionBody;
+  } catch {
+    throw new Error("OpenAI 返回了无法解析的转写结果。");
   }
-
-  const payload = (await response.json()) as TranscriptionBody;
   if (typeof payload.text !== "string") {
     throw new Error("OpenAI 返回了无法识别的转写结果。");
   }
 
-  if (requestOptions.speakerDiarization && Array.isArray(payload.segments)) {
+  if (options.speakerDiarization && Array.isArray(payload.segments)) {
     const formatted = formatDiarizedTranscript(
       payload.segments,
-      requestOptions.includeTimestamps,
+      options.includeTimestamps,
     );
     if (formatted) return formatted;
   }
 
   return payload.text.trim();
+}
+
+function sendTranscriptionWithUploadProgress(
+  body: FormData,
+  apiKey: string,
+  signal?: AbortSignal,
+  onUploadProgress?: (progress: UploadProgress) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    const abortRequest = () => request.abort();
+    const cleanup = () => signal?.removeEventListener("abort", abortRequest);
+
+    request.open("POST", ENDPOINT);
+    request.setRequestHeader("Authorization", `Bearer ${apiKey.trim()}`);
+    request.upload.onprogress = (event) => {
+      const total = event.lengthComputable ? event.total : 0;
+      onUploadProgress?.({
+        loaded: event.loaded,
+        total,
+        percent: total > 0 ? Math.min(100, (event.loaded / total) * 100) : 0,
+        computable: event.lengthComputable,
+      });
+    };
+    request.upload.onload = () => {
+      onUploadProgress?.({
+        loaded: body.get("file") instanceof File ? (body.get("file") as File).size : 0,
+        total: body.get("file") instanceof File ? (body.get("file") as File).size : 0,
+        percent: 100,
+        computable: true,
+      });
+    };
+    request.onload = () => {
+      cleanup();
+      if (request.status >= 200 && request.status < 300) {
+        resolve(request.responseText);
+      } else {
+        reject(createRequestErrorFromRaw(request.status, request.responseText));
+      }
+    };
+    request.onerror = () => {
+      cleanup();
+      reject(new TypeError("Network request failed"));
+    };
+    request.onabort = () => {
+      cleanup();
+      reject(new DOMException("The operation was aborted.", "AbortError"));
+    };
+
+    if (signal?.aborted) {
+      request.abort();
+      return;
+    }
+    signal?.addEventListener("abort", abortRequest, { once: true });
+    request.send(body);
+  });
 }
 
 function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
@@ -215,6 +312,10 @@ function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
 
 async function createRequestError(response: Response): Promise<Error> {
   const raw = await response.text();
+  return createRequestErrorFromRaw(response.status, raw);
+}
+
+function createRequestErrorFromRaw(status: number, raw: string): Error {
   let payload: OpenAIErrorBody = {};
   try {
     payload = JSON.parse(raw) as OpenAIErrorBody;
@@ -230,7 +331,7 @@ async function createRequestError(response: Response): Promise<Error> {
   ].filter(Boolean);
   const message = apiError?.message || raw.trim() || "未返回错误说明";
   return new Error(
-    `OpenAI 请求失败（HTTP ${response.status}）：${message}${
+    `OpenAI 请求失败（HTTP ${status}）：${message}${
       details.length ? `\n${details.join(" · ")}` : ""
     }`,
   );

@@ -35,6 +35,8 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
   assert.match(workbench, /无损修复为 FLAC/);
   assert.match(workbench, /最低码率/);
   assert.match(workbench, /仅在本机处理/);
+  assert.match(workbench, /音频上传进度/);
+  assert.match(workbench, /正在上传音频到 OpenAI/);
   assert.match(workbench, /JSON\.stringify\(requestPreview/);
   assert.match(workbench, /type=\{showKey \? "text" : "password"\}/);
   assert.doesNotMatch(workbench, /localStorage|sessionStorage|document\.cookie/);
@@ -80,6 +82,9 @@ test("formats diarized responses and enables automatic chunking", async () => {
   assert.match(transcription, /include\[\]/);
   assert.match(transcription, /timestamp_granularities\[\]/);
   assert.match(transcription, /createRequestError/);
+  assert.match(transcription, /XMLHttpRequest/);
+  assert.match(transcription, /request\.upload\.onprogress/);
+  assert.match(transcription, /onUploadProgress/);
   assert.match(transcription, /authorization: "Bearer \[hidden\]"/);
   assert.match(transcription, /formatDiarizedTranscript/);
   assert.match(transcription, /说话人/);

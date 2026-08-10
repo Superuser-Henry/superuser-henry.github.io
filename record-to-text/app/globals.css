@@ -842,6 +842,63 @@ select {
   gap: 16px;
 }
 
+.upload-progress-card {
+  margin-top: 10px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+
+.upload-progress-card.is-error {
+  border-color: #fecaca;
+  background: #fff5f4;
+}
+
+.upload-progress-heading,
+.upload-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upload-progress-heading {
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.upload-progress-heading strong {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.upload-progress-card progress {
+  display: block;
+  width: 100%;
+  height: 7px;
+  margin: 9px 0 7px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  accent-color: var(--accent);
+}
+
+.upload-progress-meta {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
+.upload-progress-meta span:last-child {
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .primary-button {
   min-width: 210px;
   height: 52px;
