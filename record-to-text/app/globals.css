@@ -274,6 +274,15 @@ textarea:focus-visible,
   font-weight: 650;
 }
 
+.provider-select {
+  min-height: 42px;
+  padding: 0 11px;
+}
+
+.api-key-label {
+  margin-top: 16px;
+}
+
 .key-field {
   display: flex;
   border: 1px solid var(--line-strong);
@@ -758,6 +767,20 @@ select {
   border-radius: var(--radius);
   background: var(--accent-soft);
   color: #1e40af;
+}
+
+.diarization-split-note {
+  margin: -8px 0 18px;
+  padding: 9px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.language-note {
+  margin: -8px 0 18px;
+  color: var(--text-muted);
 }
 
 .prompt-label {

@@ -1,14 +1,15 @@
 export type ChunkingStrategy = "single" | "auto" | "server_vad";
+export type ApiProvider = "openai" | "openrouter";
 export type ResponseFormat =
   | "json"
   | "text"
   | "srt"
   | "verbose_json"
-  | "vtt"
-  | "diarized_json";
+  | "vtt";
 export type TimestampGranularity = "word" | "segment";
 
 export type TranscriptionRequestOptions = {
+  provider: ApiProvider;
   file: File;
   model: string;
   languages: string[];
@@ -25,6 +26,9 @@ export type TranscriptionRequestOptions = {
   timestampGranularities: TimestampGranularity[];
   speakerDiarization: boolean;
   includeTimestamps: boolean;
+  grokTextFormatting: boolean;
+  grokFillerWords: boolean;
+  timestampOffsetSeconds?: number;
 };
 
 export type TranscriptionOptions = TranscriptionRequestOptions & {
@@ -43,11 +47,12 @@ export type UploadProgress = {
 };
 
 export type RequestDebugInfo = {
+  provider: ApiProvider;
   client_request_id: string;
   server_request_id: string | null;
   http_status: number;
-  openai_processing_ms: string | null;
-  openai_version: string | null;
+  processing_ms: string | null;
+  api_version: string | null;
   response_content_type: string | null;
   captured_at: string;
 };
@@ -71,6 +76,12 @@ type DiarizedSegment = {
 type TranscriptionBody = {
   text?: string;
   segments?: DiarizedSegment[];
+  words?: Array<{
+    text?: string;
+    start?: number;
+    end?: number;
+    speaker?: string | number;
+  }>;
 };
 
 type StreamEvent = {
@@ -83,11 +94,13 @@ type StreamEvent = {
 };
 
 type RequestParts = {
-  body: FormData;
   preview: Record<string, unknown>;
 };
 
-const ENDPOINT = "https://api.openai.com/v1/audio/transcriptions";
+const ENDPOINTS: Record<ApiProvider, string> = {
+  openai: "https://api.openai.com/v1/audio/transcriptions",
+  openrouter: "https://openrouter.ai/api/v1/audio/transcriptions",
+};
 const LOGPROB_MODELS = new Set([
   "gpt-4o-transcribe",
   "gpt-4o-mini-transcribe",
@@ -97,7 +110,7 @@ const LOGPROB_MODELS = new Set([
 export function getTranscriptionRequestPreview(
   options: TranscriptionRequestOptions,
 ): Record<string, unknown> {
-  return buildRequestParts(options).preview;
+  return buildRequestPreview(options).preview;
 }
 
 export async function transcribeAudio({
@@ -108,12 +121,32 @@ export async function transcribeAudio({
   onRequestDebug,
   ...requestOptions
 }: TranscriptionOptions): Promise<string> {
-  const { body } = buildRequestParts(requestOptions);
   const clientRequestId = crypto.randomUUID();
+
+  if (requestOptions.provider === "openrouter") {
+    const body = await buildOpenRouterRequestBody(requestOptions);
+    const raw = await sendTranscriptionWithUploadProgress(
+      JSON.stringify(body),
+      "application/json",
+      requestOptions.file.size,
+      requestOptions.provider,
+      apiKey,
+      clientRequestId,
+      signal,
+      onUploadProgress,
+      onRequestDebug,
+    );
+    return parseTranscriptionResponse(raw, requestOptions);
+  }
+
+  const body = buildOpenAIFormData(requestOptions);
 
   if (!requestOptions.stream || requestOptions.model === "whisper-1") {
     const raw = await sendTranscriptionWithUploadProgress(
       body,
+      null,
+      requestOptions.file.size,
+      requestOptions.provider,
       apiKey,
       clientRequestId,
       signal,
@@ -129,7 +162,7 @@ export async function transcribeAudio({
     percent: 0,
     computable: false,
   });
-  const response = await fetch(ENDPOINT, {
+  const response = await fetch(ENDPOINTS.openai, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey.trim()}`,
@@ -140,12 +173,15 @@ export async function transcribeAudio({
   });
 
   const requestDebug = debugInfoFromHeaders(
+    requestOptions.provider,
     clientRequestId,
     response.status,
     (name) => response.headers.get(name),
   );
   onRequestDebug?.(requestDebug);
-  if (!response.ok) throw await createRequestError(response, requestDebug);
+  if (!response.ok) {
+    throw await createRequestError(response, requestOptions.provider, requestDebug);
+  }
 
   onUploadProgress?.({
     loaded: requestOptions.file.size,
@@ -158,6 +194,7 @@ export async function transcribeAudio({
     response,
     requestOptions.speakerDiarization,
     requestOptions.includeTimestamps,
+    requestOptions.timestampOffsetSeconds || 0,
     onPartialTranscript,
   );
 }
@@ -166,7 +203,14 @@ function parseTranscriptionResponse(
   raw: string,
   options: TranscriptionRequestOptions,
 ): string {
-  if (["text", "srt", "vtt"].includes(options.responseFormat)) {
+  if (["srt", "vtt"].includes(options.responseFormat)) {
+    return shiftSubtitleTimestamps(
+      raw.trim(),
+      options.timestampOffsetSeconds || 0,
+      options.responseFormat as "srt" | "vtt",
+    );
+  }
+  if (options.responseFormat === "text") {
     return raw.trim();
   }
 
@@ -174,16 +218,26 @@ function parseTranscriptionResponse(
   try {
     payload = JSON.parse(raw) as TranscriptionBody;
   } catch {
-    throw new Error("OpenAI 返回了无法解析的转写结果。");
+    throw new Error(`${providerLabel(options.provider)} 返回了无法解析的转写结果。`);
   }
   if (typeof payload.text !== "string") {
-    throw new Error("OpenAI 返回了无法识别的转写结果。");
+    throw new Error(`${providerLabel(options.provider)} 返回了无法识别的转写结果。`);
+  }
+
+  if (options.speakerDiarization && Array.isArray(payload.words)) {
+    const formatted = formatDiarizedWords(
+      payload.words,
+      options.includeTimestamps,
+      options.timestampOffsetSeconds || 0,
+    );
+    if (formatted) return formatted;
   }
 
   if (options.speakerDiarization && Array.isArray(payload.segments)) {
     const formatted = formatDiarizedTranscript(
       payload.segments,
       options.includeTimestamps,
+      options.timestampOffsetSeconds || 0,
     );
     if (formatted) return formatted;
   }
@@ -191,8 +245,69 @@ function parseTranscriptionResponse(
   return payload.text.trim();
 }
 
+export function mergeTranscriptionSegments(
+  transcripts: string[],
+  responseFormat: ResponseFormat,
+): string {
+  if (responseFormat === "srt") {
+    let cueNumber = 0;
+    return transcripts
+      .flatMap((transcript) => transcript.trim().split(/\r?\n\r?\n/))
+      .map((block) => {
+        const lines = block.split(/\r?\n/);
+        if (/^\d+$/.test(lines[0]?.trim() || "")) lines.shift();
+        cueNumber += 1;
+        return `${cueNumber}\n${lines.join("\n")}`;
+      })
+      .join("\n\n");
+  }
+  if (responseFormat === "vtt") {
+    const bodies = transcripts.map((transcript) =>
+      transcript
+        .replace(/^\uFEFF?WEBVTT[^\r\n]*(?:\r?\n){1,2}/, "")
+        .trim(),
+    );
+    return `WEBVTT\n\n${bodies.filter(Boolean).join("\n\n")}`;
+  }
+  return transcripts.join("\n\n---\n\n");
+}
+
+export function shiftSubtitleTimestamps(
+  transcript: string,
+  offsetSeconds: number,
+  responseFormat: "srt" | "vtt",
+): string {
+  if (!offsetSeconds) return transcript;
+  const separator = responseFormat === "srt" ? "," : ".";
+  const pattern = responseFormat === "srt"
+    ? /\b(\d{2,}):(\d{2}):(\d{2}),(\d{3})\b/g
+    : /\b(?:(\d{2,}):)?(\d{2}):(\d{2})\.(\d{3})\b/g;
+  return transcript.replace(pattern, (_match, first, second, third, milliseconds) => {
+    const hasHours = responseFormat === "srt" || first !== undefined;
+    const hours = hasHours ? Number(first) : 0;
+    const minutes = Number(second);
+    const seconds = Number(third);
+    const millis = Number(milliseconds);
+    const shiftedMilliseconds =
+      Math.round(offsetSeconds * 1000) +
+      (((hours * 60 + minutes) * 60 + seconds) * 1000) +
+      millis;
+    const shiftedHours = Math.floor(shiftedMilliseconds / 3_600_000);
+    const shiftedMinutes = Math.floor((shiftedMilliseconds % 3_600_000) / 60_000);
+    const shiftedSeconds = Math.floor((shiftedMilliseconds % 60_000) / 1000);
+    const shiftedMillis = shiftedMilliseconds % 1000;
+    const hourPrefix = responseFormat === "srt" || shiftedHours > 0
+      ? `${String(shiftedHours).padStart(2, "0")}:`
+      : "";
+    return `${hourPrefix}${String(shiftedMinutes).padStart(2, "0")}:${String(shiftedSeconds).padStart(2, "0")}${separator}${String(shiftedMillis).padStart(3, "0")}`;
+  });
+}
+
 function sendTranscriptionWithUploadProgress(
-  body: FormData,
+  body: FormData | string,
+  contentType: string | null,
+  sourceFileSize: number,
+  provider: ApiProvider,
   apiKey: string,
   clientRequestId: string,
   signal?: AbortSignal,
@@ -204,22 +319,26 @@ function sendTranscriptionWithUploadProgress(
     const abortRequest = () => request.abort();
     const cleanup = () => signal?.removeEventListener("abort", abortRequest);
 
-    request.open("POST", ENDPOINT);
+    request.open("POST", ENDPOINTS[provider]);
     request.setRequestHeader("Authorization", `Bearer ${apiKey.trim()}`);
-    request.setRequestHeader("X-Client-Request-Id", clientRequestId);
+    if (contentType) request.setRequestHeader("Content-Type", contentType);
+    if (provider === "openai") {
+      request.setRequestHeader("X-Client-Request-Id", clientRequestId);
+    }
     request.upload.onprogress = (event) => {
       const total = event.lengthComputable ? event.total : 0;
+      const percent = total > 0 ? Math.min(100, (event.loaded / total) * 100) : 0;
       onUploadProgress?.({
-        loaded: event.loaded,
-        total,
-        percent: total > 0 ? Math.min(100, (event.loaded / total) * 100) : 0,
+        loaded: sourceFileSize * (percent / 100),
+        total: sourceFileSize,
+        percent,
         computable: event.lengthComputable,
       });
     };
     request.upload.onload = () => {
       onUploadProgress?.({
-        loaded: body.get("file") instanceof File ? (body.get("file") as File).size : 0,
-        total: body.get("file") instanceof File ? (body.get("file") as File).size : 0,
+        loaded: sourceFileSize,
+        total: sourceFileSize,
         percent: 100,
         computable: true,
       });
@@ -227,6 +346,7 @@ function sendTranscriptionWithUploadProgress(
     request.onload = () => {
       cleanup();
       const debug = debugInfoFromHeaders(
+        provider,
         clientRequestId,
         request.status,
         (name) => request.getResponseHeader(name),
@@ -235,12 +355,14 @@ function sendTranscriptionWithUploadProgress(
       if (request.status >= 200 && request.status < 300) {
         resolve(request.responseText);
       } else {
-        reject(createRequestErrorFromRaw(request.status, request.responseText, debug));
+        reject(createRequestErrorFromRaw(request.status, request.responseText, provider, debug));
       }
     };
     request.onerror = () => {
       cleanup();
-      reject(new TypeError("Network request failed"));
+      reject(new Error(
+        `无法连接 ${providerLabel(provider)}。请检查网络、浏览器隐私设置或 API Key 后重试。`,
+      ));
     };
     request.onabort = () => {
       cleanup();
@@ -257,45 +379,32 @@ function sendTranscriptionWithUploadProgress(
 }
 
 function debugInfoFromHeaders(
+  provider: ApiProvider,
   clientRequestId: string,
   status: number,
   getHeader: (name: string) => string | null,
 ): RequestDebugInfo {
   return {
+    provider,
     client_request_id: clientRequestId,
-    server_request_id: getHeader("x-request-id"),
+    server_request_id: provider === "openrouter"
+      ? getHeader("x-generation-id")
+      : getHeader("x-request-id"),
     http_status: status,
-    openai_processing_ms: getHeader("openai-processing-ms"),
-    openai_version: getHeader("openai-version"),
+    processing_ms: getHeader("openai-processing-ms"),
+    api_version: getHeader("openai-version"),
     response_content_type: getHeader("content-type"),
     captured_at: new Date().toISOString(),
   };
 }
 
-function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
+function buildOpenAIFormData(options: TranscriptionRequestOptions): FormData {
   const body = new FormData();
-  const submitted: Record<string, unknown> = {};
-  const add = (name: string, value: string, previewValue: unknown = value) => {
-    body.append(name, value);
-    if (name.endsWith("[]")) {
-      const previous = submitted[name];
-      submitted[name] = Array.isArray(previous)
-        ? [...previous, previewValue]
-        : [previewValue];
-    } else {
-      submitted[name] = previewValue;
-    }
-  };
+  const add = (name: string, value: string) => body.append(name, value);
 
-  body.append("file", options.file, options.file.name);
-  submitted.file = {
-    name: options.file.name,
-    type: options.file.type || "application/octet-stream",
-    size_bytes: options.file.size,
-  };
   add("model", options.model);
   add("response_format", options.responseFormat);
-  add("temperature", String(options.temperature), options.temperature);
+  add("temperature", String(options.temperature));
 
   const languages = options.languages.filter(Boolean);
   if (options.model === "gpt-transcribe") {
@@ -307,7 +416,7 @@ function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
     add("language", languages[0]);
   }
 
-  if (options.model !== "gpt-4o-transcribe-diarize" && options.prompt.trim()) {
+  if (options.prompt.trim()) {
     add("prompt", options.prompt.trim());
   }
 
@@ -317,13 +426,12 @@ function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
     if (options.chunkingStrategy === "auto") {
       add("chunking_strategy", "auto");
     } else {
-      const vadConfig = {
+      add("chunking_strategy", JSON.stringify({
         type: "server_vad",
         prefix_padding_ms: options.vadPrefixPaddingMs,
         silence_duration_ms: options.vadSilenceDurationMs,
         threshold: options.vadThreshold,
-      };
-      add("chunking_strategy", JSON.stringify(vadConfig), vadConfig);
+      }));
     }
   }
 
@@ -336,7 +444,7 @@ function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
   }
 
   if (options.stream && options.model !== "whisper-1") {
-    add("stream", "true", true);
+    add("stream", "true");
   }
 
   if (options.model === "whisper-1" && options.responseFormat === "verbose_json") {
@@ -345,10 +453,93 @@ function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
     );
   }
 
+  body.append("file", options.file, options.file.name);
+  return body;
+}
+
+function buildRequestPreview(options: TranscriptionRequestOptions): RequestParts {
+  const submitted: Record<string, unknown> = {};
+  const add = (name: string, value: unknown) => {
+    if (name.endsWith("[]")) {
+      const previous = submitted[name];
+      submitted[name] = Array.isArray(previous) ? [...previous, value] : [value];
+    } else {
+      submitted[name] = value;
+    }
+  };
+
+  const filePreview = {
+    name: options.file.name,
+    type: options.file.type || "application/octet-stream",
+    size_bytes: options.file.size,
+  };
+
+  if (options.provider === "openrouter") {
+    const body: Record<string, unknown> = {
+      model: options.model,
+      input_audio: {
+        data: "[base64 audio hidden]",
+        format: audioFormatFor(options.file),
+      },
+      temperature: options.temperature,
+    };
+    if (options.languages[0]) body.language = options.languages[0];
+    const grokOptions = openRouterGrokOptions(options);
+    if (grokOptions) {
+      body.provider = { options: { "x-ai": grokOptions } };
+    }
+    return {
+      preview: {
+        endpoint: ENDPOINTS.openrouter,
+        method: "POST",
+        content_type: "application/json",
+        authorization: "Bearer [hidden]",
+        local_file_debug: filePreview,
+        body,
+      },
+    };
+  }
+
+  add("file", filePreview);
+  add("model", options.model);
+  add("response_format", options.responseFormat);
+  add("temperature", options.temperature);
+
+  const languages = options.languages.filter(Boolean);
+  if (options.model === "gpt-transcribe") {
+    languages.forEach((language) => add("languages[]", language));
+    options.keywords.filter(Boolean).forEach((keyword) => add("keywords[]", keyword));
+  } else if (languages[0]) {
+    add("language", languages[0]);
+  }
+
+  if (options.prompt.trim()) add("prompt", options.prompt.trim());
+
+  if (options.model !== "whisper-1" && options.chunkingStrategy !== "single") {
+    add("chunking_strategy", options.chunkingStrategy === "auto"
+      ? "auto"
+      : {
+          type: "server_vad",
+          prefix_padding_ms: options.vadPrefixPaddingMs,
+          silence_duration_ms: options.vadSilenceDurationMs,
+          threshold: options.vadThreshold,
+        });
+  }
+
+  if (
+    options.includeLogprobs &&
+    options.responseFormat === "json" &&
+    LOGPROB_MODELS.has(options.model)
+  ) add("include[]", "logprobs");
+  if (options.stream && options.model !== "whisper-1") add("stream", true);
+  if (options.model === "whisper-1" && options.responseFormat === "verbose_json") {
+    options.timestampGranularities.forEach((granularity) =>
+      add("timestamp_granularities[]", granularity));
+  }
+
   return {
-    body,
     preview: {
-      endpoint: ENDPOINT,
+      endpoint: ENDPOINTS.openai,
       method: "POST",
       content_type: "multipart/form-data",
       authorization: "Bearer [hidden]",
@@ -357,17 +548,77 @@ function buildRequestParts(options: TranscriptionRequestOptions): RequestParts {
   };
 }
 
+async function buildOpenRouterRequestBody(
+  options: TranscriptionRequestOptions,
+): Promise<Record<string, unknown>> {
+  const body: Record<string, unknown> = {
+    model: options.model,
+    input_audio: {
+      data: arrayBufferToBase64(await options.file.arrayBuffer()),
+      format: audioFormatFor(options.file),
+    },
+    temperature: options.temperature,
+  };
+  if (options.languages[0]) body.language = options.languages[0];
+  const grokOptions = openRouterGrokOptions(options);
+  if (grokOptions) body.provider = { options: { "x-ai": grokOptions } };
+  return body;
+}
+
+function openRouterGrokOptions(
+  options: TranscriptionRequestOptions,
+): Record<string, unknown> | null {
+  if (options.model !== "x-ai/grok-stt-1.0") return null;
+  return {
+    diarize: options.speakerDiarization,
+    format: options.grokTextFormatting && Boolean(options.languages[0]),
+    filler_words: options.grokFillerWords,
+    vad_threshold: options.vadThreshold,
+    ...(options.keywords.length ? { keyterm: options.keywords } : {}),
+  };
+}
+
+function audioFormatFor(file: File): string {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (extension && ["wav", "mp3", "flac", "m4a", "ogg", "webm", "aac"].includes(extension)) {
+    return extension;
+  }
+  const mimeFormats: Record<string, string> = {
+    "audio/wav": "wav",
+    "audio/x-wav": "wav",
+    "audio/mpeg": "mp3",
+    "audio/flac": "flac",
+    "audio/mp4": "m4a",
+    "audio/ogg": "ogg",
+    "audio/webm": "webm",
+    "audio/aac": "aac",
+  };
+  return mimeFormats[file.type] || "mp3";
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
 async function createRequestError(
   response: Response,
+  provider: ApiProvider,
   debug?: RequestDebugInfo,
 ): Promise<Error> {
   const raw = await response.text();
-  return createRequestErrorFromRaw(response.status, raw, debug);
+  return createRequestErrorFromRaw(response.status, raw, provider, debug);
 }
 
 function createRequestErrorFromRaw(
   status: number,
   raw: string,
+  provider: ApiProvider,
   debug?: RequestDebugInfo,
 ): Error {
   let payload: OpenAIErrorBody = {};
@@ -387,16 +638,21 @@ function createRequestErrorFromRaw(
   ].filter(Boolean);
   const message = apiError?.message || raw.trim() || "未返回错误说明";
   return new Error(
-    `OpenAI 请求失败（HTTP ${status}）：${message}${
+    `${providerLabel(provider)} 请求失败（HTTP ${status}）：${message}${
       details.length ? `\n${details.join(" · ")}` : ""
     }`,
   );
+}
+
+function providerLabel(provider: ApiProvider): string {
+  return provider === "openrouter" ? "OpenRouter" : "OpenAI";
 }
 
 async function readTranscriptionStream(
   response: Response,
   speakerDiarization: boolean,
   includeTimestamps: boolean,
+  timestampOffsetSeconds: number,
   onPartialTranscript?: (text: string) => void,
 ): Promise<string> {
   if (!response.body) {
@@ -446,7 +702,11 @@ async function readTranscriptionStream(
   if (buffer.trim()) consumeBlock(buffer);
 
   if (speakerDiarization && segments.length) {
-    return formatDiarizedTranscript(segments, includeTimestamps);
+    return formatDiarizedTranscript(
+      segments,
+      includeTimestamps,
+      timestampOffsetSeconds,
+    );
   }
   const result = (finalText || partialText).trim();
   if (!result) throw new Error("OpenAI 的流式响应中没有转写文字。");
@@ -456,6 +716,7 @@ async function readTranscriptionStream(
 function formatDiarizedTranscript(
   segments: DiarizedSegment[],
   includeTimestamps: boolean,
+  timestampOffsetSeconds = 0,
 ): string {
   return segments
     .filter((segment) => typeof segment.text === "string" && segment.text.trim())
@@ -463,19 +724,71 @@ function formatDiarizedTranscript(
       const speaker = segment.speaker?.trim() || "?";
       const label = `说话人 ${speaker}`;
       const timestamp = includeTimestamps
-        ? `[${formatTimestamp(segment.start)}–${formatTimestamp(segment.end)}] `
+        ? `[${formatTimestampWithOffset(segment.start, timestampOffsetSeconds)}–${formatTimestampWithOffset(segment.end, timestampOffsetSeconds)}] `
         : "";
       return `${timestamp}${label}：${segment.text?.trim()}`;
     })
     .join("\n\n");
 }
 
+function formatDiarizedWords(
+  words: NonNullable<TranscriptionBody["words"]>,
+  includeTimestamps: boolean,
+  timestampOffsetSeconds = 0,
+): string {
+  const groups: Array<{
+    speaker: string;
+    start?: number;
+    end?: number;
+    words: string[];
+  }> = [];
+
+  words.forEach((word) => {
+    const text = word.text?.trim();
+    if (!text) return;
+    const speaker = String(word.speaker ?? "?");
+    const current = groups.at(-1);
+    if (!current || current.speaker !== speaker) {
+      groups.push({
+        speaker,
+        start: word.start,
+        end: word.end,
+        words: [text],
+      });
+      return;
+    }
+    current.words.push(text);
+    current.end = word.end;
+  });
+
+  return groups.map((group) => {
+    const text = group.words
+      .join(" ")
+      .replace(/\s+([,.;:!?，。；：！？])/g, "$1");
+    const timestamp = includeTimestamps
+      ? `[${formatTimestampWithOffset(group.start, timestampOffsetSeconds)}–${formatTimestampWithOffset(group.end, timestampOffsetSeconds)}] `
+      : "";
+    return `${timestamp}说话人 ${group.speaker}：${text}`;
+  }).join("\n\n");
+}
+
+function formatTimestampWithOffset(seconds: number | undefined, offset: number): string {
+  return formatTimestamp(
+    typeof seconds === "number" && Number.isFinite(seconds)
+      ? seconds + offset
+      : seconds,
+  );
+}
+
 function formatTimestamp(seconds?: number): string {
   if (typeof seconds !== "number" || !Number.isFinite(seconds)) return "--:--";
   const wholeSeconds = Math.max(0, Math.floor(seconds));
-  const minutes = Math.floor(wholeSeconds / 60);
+  const hours = Math.floor(wholeSeconds / 3600);
+  const minutes = Math.floor((wholeSeconds % 3600) / 60);
   const remainder = wholeSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+  return hours > 0
+    ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
+    : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
 }
 
 export function friendlyError(error: unknown): string {

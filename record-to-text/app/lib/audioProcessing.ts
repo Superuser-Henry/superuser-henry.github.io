@@ -1,5 +1,6 @@
 import {
   baseName,
+  OPENAI_FILE_LIMIT,
   targetVbrBitrateKbps,
 } from "./audio";
 
@@ -29,6 +30,24 @@ export interface CompressedAudioResult {
 export interface RepairedAudioResult {
   file: File;
   diagnostics: AudioDiagnosticReport;
+}
+
+export const STANDARD_TRANSCRIPTION_MAX_SECONDS = 1800;
+export const STANDARD_TRANSCRIPTION_SEGMENT_SECONDS = 1800;
+const TRANSCRIPTION_SEGMENT_BITRATE_KBPS = 48;
+
+export interface TranscriptionAudioSegment {
+  file: File;
+  index: number;
+  total: number;
+  startSeconds: number;
+  durationSeconds: number;
+}
+
+export interface AudioSegmentResult {
+  segments: TranscriptionAudioSegment[];
+  originalDurationSeconds: number;
+  processed: boolean;
 }
 
 export interface AudioDiagnosticReport {
@@ -365,6 +384,144 @@ export async function repairAudioAsWav(
   await verifyProcessedDuration(output);
   const diagnostics = await diagnoseAudioFile(output, onProgress);
   return { file: output, diagnostics };
+}
+
+export async function prepareAudioSegmentsForUpload(
+  file: File,
+  triggerDurationSeconds: number,
+  segmentDurationSeconds: number,
+  onProgress?: (progress: AudioProcessingProgress) => void,
+): Promise<AudioSegmentResult> {
+  const originalDurationSeconds = await readAudioDuration(file);
+  const needsProcessing =
+    originalDurationSeconds > triggerDurationSeconds ||
+    file.size > OPENAI_FILE_LIMIT;
+
+  if (!needsProcessing) {
+    return {
+      segments: [{
+        file,
+        index: 0,
+        total: 1,
+        startSeconds: 0,
+        durationSeconds: originalDurationSeconds,
+      }],
+      originalDurationSeconds,
+      processed: false,
+    };
+  }
+
+  const ffmpeg = await loadEngine(onProgress);
+  const jobId = crypto.randomUUID();
+  const inputName = `transcription-input-${jobId}.${safeExtension(file.name)}`;
+  const outputPrefix = `transcription-segment-${jobId}`;
+  const outputPattern = `${outputPrefix}-%03d.mp3`;
+  const { fetchFile } = await import("@ffmpeg/util");
+  const progressHandler = ({ progress }: { progress: number }) => {
+    onProgress?.({
+      stage: "processing",
+      progress: Math.max(0, Math.min(1, progress)),
+      message: `正在本地切分长音频为 ${Math.round(segmentDurationSeconds / 60)} 分钟片段；文件尚未上传…`,
+    });
+  };
+
+  ffmpeg.on("progress", progressHandler);
+  const outputNames: string[] = [];
+  try {
+    await ffmpeg.writeFile(inputName, await fetchFile(file));
+    const exitCode = await ffmpeg.exec([
+      "-i",
+      inputName,
+      "-map",
+      "0:a:0",
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      "16000",
+      "-c:a",
+      "libmp3lame",
+      "-b:a",
+      `${TRANSCRIPTION_SEGMENT_BITRATE_KBPS}k`,
+      "-abr",
+      "1",
+      "-compression_level",
+      "2",
+      "-map_metadata",
+      "-1",
+      "-f",
+      "segment",
+      "-segment_time",
+      String(segmentDurationSeconds),
+      "-reset_timestamps",
+      "1",
+      outputPattern,
+    ]);
+    if (exitCode !== 0) {
+      throw new Error(`长音频自动分段失败（FFmpeg exit ${exitCode}）。`);
+    }
+
+    const nodes = await ffmpeg.listDir("/");
+    outputNames.push(
+      ...nodes
+        .filter((node) => !node.isDir && node.name.startsWith(outputPrefix) && node.name.endsWith(".mp3"))
+        .map((node) => node.name)
+        .sort(),
+    );
+    if (!outputNames.length) throw new Error("长音频分段没有生成任何可上传文件。");
+
+    const files = await Promise.all(outputNames.map(async (name, index) => {
+      const output = await ffmpeg.readFile(name);
+      if (typeof output === "string") throw new Error("音频分段返回了无效数据。");
+      return new File(
+        [uint8ArrayToBlobPart(output)],
+        `${baseName(file.name)}-part-${String(index + 1).padStart(2, "0")}.mp3`,
+        { type: "audio/mpeg", lastModified: Date.now() },
+      );
+    }));
+    const durations = await Promise.all(files.map((segment) => readAudioDuration(segment)));
+    const durationTolerance = 3;
+    files.forEach((segment, index) => {
+      if (segment.size > OPENAI_FILE_LIMIT) {
+        throw new Error(`第 ${index + 1} 个音频片段仍超过 25 MB，已阻止上传。`);
+      }
+      if (durations[index] > segmentDurationSeconds + durationTolerance) {
+        throw new Error(
+          `第 ${index + 1} 个音频片段约 ${Math.round(durations[index])} 秒，` +
+          "仍超过目标分段时长，已阻止上传。",
+        );
+      }
+    });
+
+    const segments = files.map((segment, index): TranscriptionAudioSegment => ({
+      file: segment,
+      index,
+      total: files.length,
+      startSeconds: Math.min(index * segmentDurationSeconds, originalDurationSeconds),
+      durationSeconds: durations[index],
+    }));
+    const encodedDurationSeconds = durations.reduce((sum, duration) => sum + duration, 0);
+    const totalTolerance = Math.max(5, originalDurationSeconds * 0.01);
+    if (Math.abs(encodedDurationSeconds - originalDurationSeconds) > totalTolerance) {
+      throw new Error(
+        `分段后的总时长不完整（原始约 ${Math.round(originalDurationSeconds)} 秒，` +
+        `分段合计约 ${Math.round(encodedDurationSeconds)} 秒），已阻止上传。`,
+      );
+    }
+
+    onProgress?.({
+      stage: "processing",
+      progress: 1,
+      message: `本地分段完成，共 ${segments.length} 段。`,
+    });
+    return { segments, originalDurationSeconds, processed: true };
+  } finally {
+    ffmpeg.off("progress", progressHandler);
+    await Promise.allSettled([
+      ffmpeg.deleteFile(inputName),
+      ...outputNames.map((name) => ffmpeg.deleteFile(name)),
+    ]);
+  }
 }
 
 export function cancelAudioProcessing(): void {
