@@ -113,6 +113,38 @@ textarea:focus-visible,
   gap: 18px;
 }
 
+.language-switch {
+  min-height: 30px;
+  padding: 3px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.language-switch button {
+  border: 0;
+  padding: 3px 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
+.language-switch button.is-active {
+  color: var(--accent);
+}
+
+.language-switch button:hover {
+  color: var(--text);
+}
+
 .privacy-pill {
   border: 1px solid #dbeafe;
   border-radius: 999px;
@@ -1251,8 +1283,10 @@ select {
   }
 
   .privacy-pill {
-    font-size: 0.62rem;
+    display: none;
   }
+
+  .topbar-actions { gap: 10px; }
 
   .hero,
   .workspace,

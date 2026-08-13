@@ -21,7 +21,7 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
 
   assert.match(workbench, /useState\("gpt-transcribe"\)/);
   assert.match(workbench, /value="gpt-transcribe"/);
-  assert.match(workbench, /OpenAI: GPT Transcribe · 推荐/);
+  assert.match(workbench, /OpenAI: GPT Transcribe · \{ui\("recommended", "推荐"\)\}/);
   assert.doesNotMatch(workbench, /gpt-4o-transcribe-diarize/);
   assert.match(workbench, /value="openrouter"/);
   assert.match(workbench, /x-ai\/grok-stt-1\.0/);
@@ -57,6 +57,19 @@ test("uses a supported transcription model and keeps credentials ephemeral", asy
   assert.doesNotMatch(workbench, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(workbench, /sk-[A-Za-z0-9]{12,}/);
   assert.doesNotMatch(packageJson, /vinext|cloudflare|drizzle|next|tailwind/i);
+});
+
+test("defaults to English and provides an EN/中 interface switch", async () => {
+  const workbench = await readFile(new URL("app/TranscriptionWorkbench.tsx", root), "utf8");
+
+  assert.match(workbench, /type Locale = "en" \| "zh"/);
+  assert.match(workbench, /useState<Locale>\("en"\)/);
+  assert.match(workbench, /document\.documentElement\.lang = locale === "en" \? "en" : "zh-CN"/);
+  assert.match(workbench, />\s*EN\s*<\/button>/);
+  assert.match(workbench, />\s*中\s*<\/button>/);
+  assert.match(workbench, /aria-pressed=\{locale === "en"\}/);
+  assert.match(workbench, /Turn every voice/);
+  assert.match(workbench, /让每一段声音/);
 });
 
 test("processes oversized audio locally with lazy-loaded ffmpeg", async () => {

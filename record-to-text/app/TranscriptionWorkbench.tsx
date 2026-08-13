@@ -43,25 +43,27 @@ import {
 } from "./lib/transcription";
 
 const DEFAULT_PROMPT =
-  "请忠实转写录音；遇到中文时优先使用简体中文，并正确识别以下词汇：OpenAI、Whisper、API。";
+  "Transcribe the recording faithfully. When Chinese is spoken, prefer Simplified Chinese. Recognize these terms accurately: OpenAI, Whisper, API.";
+
+type Locale = "en" | "zh";
 
 const LANGUAGE_PRESETS = [
-  { value: "", label: "自动检测语言" },
-  { value: "zh-cn", label: "中文（偏好简体）" },
-  { value: "en", label: "英文" },
-  { value: "ja", label: "日语" },
-  { value: "fr", label: "法语" },
-  { value: "it", label: "意大利语" },
-  { value: "zh-cn,en", label: "中文 + 英文（多语言）", multiple: true },
-  { value: "zh-cn,en,ja,fr,it", label: "中 / 英 / 日 / 法 / 意（多语言）", multiple: true },
+  { value: "", en: "Auto-detect", zh: "自动检测语言" },
+  { value: "zh-cn", en: "Chinese · Simplified preferred", zh: "中文（偏好简体）" },
+  { value: "en", en: "English", zh: "英文" },
+  { value: "ja", en: "Japanese", zh: "日语" },
+  { value: "fr", en: "French", zh: "法语" },
+  { value: "it", en: "Italian", zh: "意大利语" },
+  { value: "zh-cn,en", en: "Chinese + English · multilingual", zh: "中文 + 英文（多语言）", multiple: true },
+  { value: "zh-cn,en,ja,fr,it", en: "ZH / EN / JA / FR / IT · multilingual", zh: "中 / 英 / 日 / 法 / 意（多语言）", multiple: true },
 ] as const;
 
-const RESPONSE_FORMAT_LABELS: Record<ResponseFormat, string> = {
-  json: "JSON · 纯文字",
-  text: "Text · 纯文字",
-  srt: "SRT · 字幕",
-  verbose_json: "Verbose JSON · 含时间信息",
-  vtt: "VTT · 字幕",
+const RESPONSE_FORMAT_LABELS: Record<ResponseFormat, Record<Locale, string>> = {
+  json: { en: "JSON · plain text", zh: "JSON · 纯文字" },
+  text: { en: "Text · plain text", zh: "Text · 纯文字" },
+  srt: { en: "SRT · subtitles", zh: "SRT · 字幕" },
+  verbose_json: { en: "Verbose JSON · timestamps", zh: "Verbose JSON · 含时间信息" },
+  vtt: { en: "VTT · subtitles", zh: "VTT · 字幕" },
 };
 
 const LOGPROB_MODELS = new Set([
@@ -112,15 +114,44 @@ type SegmentBatchProgress = {
   stage: "preparing" | "uploading" | "processing";
 };
 
-const statusCopy: Record<Status, string> = {
-  idle: "等待音频",
-  ready: "准备就绪",
-  uploading: "正在转写",
-  done: "转写完成",
-  error: "需要处理",
+const STATUS_COPY: Record<Status, Record<Locale, string>> = {
+  idle: { en: "Waiting for audio", zh: "等待音频" },
+  ready: { en: "Ready", zh: "准备就绪" },
+  uploading: { en: "Transcribing", zh: "正在转写" },
+  done: { en: "Complete", zh: "转写完成" },
+  error: { en: "Needs attention", zh: "需要处理" },
 };
 
+function localizeRuntimeMessage(message: string, locale: Locale): string {
+  if (locale === "zh") return message;
+  const exact: Record<string, string> = {
+    "正在准备浏览器音频处理器…": "Preparing the browser audio processor…",
+    "正在准备完整解码扫描…": "Preparing a full decode scan…",
+    "音频压缩失败。": "Audio compression failed.",
+    "音频修复失败。": "Audio repair failed.",
+    "深度音频检查失败。": "Deep audio inspection failed.",
+    "已取消。再次处理时需要重新加载音频核心。": "Cancelled. The audio engine will reload before the next operation.",
+    "已恢复最初选择的文件。": "Restored the originally selected file.",
+    "转写已取消。": "Transcription cancelled.",
+    "转写失败，请稍后重试。": "Transcription failed. Please try again.",
+    "首次使用：正在加载约 31 MB 的音频处理核心…": "First use: loading the approximately 31 MB audio engine…",
+    "音频处理核心已就绪。": "Audio engine ready.",
+    "正在本地转码；文件不会上传到第三方服务…": "Transcoding locally; the file is not being uploaded…",
+    "正在完整解码扫描音频并计算 SHA-256…": "Running a full audio decode scan and calculating SHA-256…",
+  };
+  if (exact[message]) return exact[message];
+  return message
+    .replace(
+      /暂不支持此格式。请选择 (.+) 文件。/,
+      "This format is not supported. Choose a $1 file.",
+    )
+    .replace(/正在本地切分长音频为 (\d+) 分钟片段；文件尚未上传…/, "Splitting the audio locally into $1-minute segments; nothing has been uploaded yet…")
+    .replace(/本地分段完成，共 (\d+) 段。/, "Local segmentation complete: $1 segments.")
+    .replace(/无法连接 (OpenAI|OpenRouter)。请检查网络、浏览器隐私设置或 API Key 后重试。/, "Could not connect to $1. Check your network, browser privacy settings, and API key, then try again.");
+}
+
 export function TranscriptionWorkbench() {
+  const [locale, setLocale] = useState<Locale>("en");
   const [provider, setProvider] = useState<ApiProvider>("openai");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
@@ -164,15 +195,21 @@ export function TranscriptionWorkbench() {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  const ui = (english: string, chinese: string) => locale === "en" ? english : chinese;
+
   useEffect(() => () => {
     abortRef.current?.abort();
     cancelAudioProcessing();
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = locale === "en" ? "en" : "zh-CN";
+  }, [locale]);
+
   const acceptFile = (nextFile?: File) => {
     if (!nextFile) return;
     const validation = validateAudio(nextFile);
-    setFileError(validation || "");
+    setFileError(validation ? localizeRuntimeMessage(validation, locale) : "");
     setFile(validation ? null : nextFile);
     setOriginalFile(validation ? null : nextFile);
     setTargetSizeMb(recommendedTargetMb(nextFile.size));
@@ -210,14 +247,14 @@ export function TranscriptionWorkbench() {
   const updateAudioToolProgress = (progress: AudioProcessingProgress) => {
     setAudioToolStatus(progress.stage);
     setAudioToolProgress(progress.progress);
-    setAudioToolMessage(progress.message);
+    setAudioToolMessage(localizeRuntimeMessage(progress.message, locale));
   };
 
   const compressSelectedAudio = async () => {
     if (!file) return;
     setAudioToolStatus("loading");
     setAudioToolProgress(0);
-    setAudioToolMessage("正在准备浏览器音频处理器…");
+    setAudioToolMessage(ui("Preparing the browser audio processor…", "正在准备浏览器音频处理器…"));
     try {
       const result = await compressAudioForUpload(
         file,
@@ -231,8 +268,12 @@ export function TranscriptionWorkbench() {
       setAudioToolStatus("done");
       setAudioToolProgress(1);
       setAudioToolMessage(
-        `已转为单声道 MP3 ABR：目标平均 ${result.targetBitrateKbps} kbps，` +
-        `${formatBytes(file.size)} → ${formatBytes(result.file.size)}。`,
+        ui(
+          `Converted to mono MP3 ABR at a target average of ${result.targetBitrateKbps} kbps: ` +
+          `${formatBytes(file.size)} → ${formatBytes(result.file.size)}.`,
+          `已转为单声道 MP3 ABR：目标平均 ${result.targetBitrateKbps} kbps，` +
+          `${formatBytes(file.size)} → ${formatBytes(result.file.size)}。`,
+        ),
       );
       setStatus("ready");
       setMessage("");
@@ -240,7 +281,10 @@ export function TranscriptionWorkbench() {
     } catch (error) {
       if (error instanceof AudioDiagnosticError) setAudioDiagnostics(error.report);
       setAudioToolStatus("error");
-      setAudioToolMessage(error instanceof Error ? error.message : "音频压缩失败。");
+      setAudioToolMessage(localizeRuntimeMessage(
+        error instanceof Error ? error.message : "音频压缩失败。",
+        locale,
+      ));
     }
   };
 
@@ -248,7 +292,7 @@ export function TranscriptionWorkbench() {
     if (!file) return;
     setAudioToolStatus("loading");
     setAudioToolProgress(0);
-    setAudioToolMessage("正在准备浏览器音频处理器…");
+    setAudioToolMessage(ui("Preparing the browser audio processor…", "正在准备浏览器音频处理器…"));
     try {
       const result = await repairAudioAsWav(file, updateAudioToolProgress);
       const repairedFile = result.file;
@@ -258,7 +302,10 @@ export function TranscriptionWorkbench() {
       setAudioToolStatus("done");
       setAudioToolProgress(1);
       setAudioToolMessage(
-        `已重新解码为兼容 WAV PCM：${formatBytes(file.size)} → ${formatBytes(repairedFile.size)}。`,
+        ui(
+          `Re-decoded as compatible WAV PCM: ${formatBytes(file.size)} → ${formatBytes(repairedFile.size)}.`,
+          `已重新解码为兼容 WAV PCM：${formatBytes(file.size)} → ${formatBytes(repairedFile.size)}。`,
+        ),
       );
       setStatus("ready");
       setMessage("");
@@ -266,7 +313,10 @@ export function TranscriptionWorkbench() {
     } catch (error) {
       if (error instanceof AudioDiagnosticError) setAudioDiagnostics(error.report);
       setAudioToolStatus("error");
-      setAudioToolMessage(error instanceof Error ? error.message : "音频修复失败。");
+      setAudioToolMessage(localizeRuntimeMessage(
+        error instanceof Error ? error.message : "音频修复失败。",
+        locale,
+      ));
     }
   };
 
@@ -274,17 +324,23 @@ export function TranscriptionWorkbench() {
     if (!file) return;
     setAudioToolStatus("loading");
     setAudioToolProgress(0);
-    setAudioToolMessage("正在准备完整解码扫描…");
+    setAudioToolMessage(ui("Preparing a full decode scan…", "正在准备完整解码扫描…"));
     try {
       const report = await diagnoseAudioFile(file, updateAudioToolProgress);
       setAudioDiagnostics(report);
       setAudioToolStatus("done");
       setAudioToolProgress(1);
-      setAudioToolMessage("深度检查通过：整段文件可被 FFmpeg 完整解码，SHA-256 已记录。");
+      setAudioToolMessage(ui(
+        "Deep inspection passed: FFmpeg decoded the entire file and recorded its SHA-256.",
+        "深度检查通过：整段文件可被 FFmpeg 完整解码，SHA-256 已记录。",
+      ));
     } catch (error) {
       if (error instanceof AudioDiagnosticError) setAudioDiagnostics(error.report);
       setAudioToolStatus("error");
-      setAudioToolMessage(error instanceof Error ? error.message : "深度音频检查失败。");
+      setAudioToolMessage(localizeRuntimeMessage(
+        error instanceof Error ? error.message : "深度音频检查失败。",
+        locale,
+      ));
     }
   };
 
@@ -292,7 +348,10 @@ export function TranscriptionWorkbench() {
     cancelAudioProcessing();
     setAudioToolStatus("idle");
     setAudioToolProgress(0);
-    setAudioToolMessage("已取消。再次处理时需要重新加载音频核心。");
+    setAudioToolMessage(ui(
+      "Cancelled. The audio engine will reload before the next operation.",
+      "已取消。再次处理时需要重新加载音频核心。",
+    ));
   };
 
   const restoreOriginalAudio = () => {
@@ -300,7 +359,7 @@ export function TranscriptionWorkbench() {
     setFile(originalFile);
     setAudioToolStatus("idle");
     setAudioToolProgress(0);
-    setAudioToolMessage("已恢复最初选择的文件。");
+    setAudioToolMessage(ui("Restored the originally selected file.", "已恢复最初选择的文件。"));
     setAudioDiagnostics(null);
     setRequestDebug(null);
     setStatus("ready");
@@ -329,6 +388,7 @@ export function TranscriptionWorkbench() {
 
   const effectiveModel = model;
   const isOpenRouter = provider === "openrouter";
+  const providerName = isOpenRouter ? "OpenRouter" : "OpenAI";
   const isGrokStt = isOpenRouter && effectiveModel === "x-ai/grok-stt-1.0";
   const speakerDiarization = isGrokStt && grokDiarization;
   const supportsMultipleLanguages = provider === "openai" && effectiveModel === "gpt-transcribe";
@@ -393,7 +453,7 @@ export function TranscriptionWorkbench() {
     grokTextFormatting,
     grokFillerWords,
   });
-  const previewFile = file || new File([], "[选择录音后填充音频]", { type: "audio/mpeg" });
+  const previewFile = file || new File([], ui("[audio added after selection]", "[选择录音后填充音频]"), { type: "audio/mpeg" });
   const baseRequestPreview = getTranscriptionRequestPreview(requestOptionsFor(previewFile));
   const requestPreview = {
     ...baseRequestPreview,
@@ -404,7 +464,10 @@ export function TranscriptionWorkbench() {
       upload_mode: "sequential",
       segmented_request_streaming: false,
       timestamp_merge: "global_offset",
-      note: `仅超限时在浏览器本地物理分段；此对象不会提交给${isOpenRouter ? " OpenRouter" : " OpenAI"}`,
+      note: ui(
+        `Client-side segmentation metadata; this object is not sent to ${providerName}.`,
+        `仅超限时在浏览器本地物理分段；此对象不会提交给 ${providerName}`,
+      ),
     },
   };
   const isAudioProcessing = audioToolStatus === "loading" || audioToolStatus === "processing";
@@ -416,27 +479,33 @@ export function TranscriptionWorkbench() {
     !isAudioProcessing &&
     status !== "uploading",
   );
-  const providerName = isOpenRouter ? "OpenRouter" : "OpenAI";
   const roundedUploadPercent = Math.round(uploadProgress?.percent || 0);
   const uploadStageLabel = status === "uploading"
     ? segmentBatch?.stage === "preparing"
-      ? "正在本地准备长音频分段"
+      ? ui("Preparing long-audio segments locally", "正在本地准备长音频分段")
       : segmentBatch
-        ? `第 ${segmentBatch.current}/${segmentBatch.total} 段：${
-            segmentBatch.stage === "processing" ? `${providerName} 正在转写` : "正在上传"
-          }`
+        ? ui(
+            `Segment ${segmentBatch.current}/${segmentBatch.total}: ${
+              segmentBatch.stage === "processing" ? `${providerName} is transcribing` : "uploading"
+            }`,
+            `第 ${segmentBatch.current}/${segmentBatch.total} 段：${
+              segmentBatch.stage === "processing" ? `${providerName} 正在转写` : "正在上传"
+            }`,
+          )
         : roundedUploadPercent >= 100
-          ? `上传完成，${providerName} 正在处理音频`
-          : `正在上传音频到 ${providerName}`
+          ? ui(`Upload complete; ${providerName} is processing the audio`, `上传完成，${providerName} 正在处理音频`)
+          : ui(`Uploading audio to ${providerName}`, `正在上传音频到 ${providerName}`)
     : status === "done"
-      ? "音频上传完成"
+      ? ui("Audio upload complete", "音频上传完成")
       : status === "error"
-        ? roundedUploadPercent >= 100 ? "上传完成，转写阶段出错" : "上传已中断"
-        : "等待上传";
+        ? roundedUploadPercent >= 100
+          ? ui("Upload complete; transcription failed", "上传完成，转写阶段出错")
+          : ui("Upload interrupted", "上传已中断")
+        : ui("Waiting to upload", "等待上传");
 
   const runTranscription = async () => {
     if (!file || !apiKey.trim()) {
-      setMessage("请先填写 API Key 并选择音频文件。");
+      setMessage(ui("Enter an API key and select an audio file first.", "请先填写 API Key 并选择音频文件。"));
       setStatus("error");
       return;
     }
@@ -453,7 +522,10 @@ export function TranscriptionWorkbench() {
       computable: !stream || !supportsStreaming,
     });
     setMessage(
-      "正在检查音频时长与大小；超限时会先在浏览器本地分段。",
+      ui(
+        "Checking audio duration and size; oversized files will be segmented locally first.",
+        "正在检查音频时长与大小；超限时会先在浏览器本地分段。",
+      ),
     );
     setTranscript("");
     let segmentationPreparationComplete = false;
@@ -495,8 +567,12 @@ export function TranscriptionWorkbench() {
         setAudioToolStatus("done");
         setAudioToolProgress(1);
         setAudioToolMessage(
-          `已在浏览器本地处理为 ${prepared.segments.length} 段，` +
-          `每段不超过 ${Math.round(automaticSegmentDurationSeconds / 60)} 分钟。`,
+          ui(
+            `Prepared ${prepared.segments.length} segments locally, each no longer than ` +
+            `${Math.round(automaticSegmentDurationSeconds / 60)} minutes.`,
+            `已在浏览器本地处理为 ${prepared.segments.length} 段，` +
+            `每段不超过 ${Math.round(automaticSegmentDurationSeconds / 60)} 分钟。`,
+          ),
         );
 
         for (const segment of prepared.segments) {
@@ -510,7 +586,10 @@ export function TranscriptionWorkbench() {
             stage: "uploading",
           });
           setMessage(
-            `正在处理第 ${segment.index + 1}/${segment.total} 段；请保持页面开启。`,
+            ui(
+              `Processing segment ${segment.index + 1}/${segment.total}; keep this page open.`,
+              `正在处理第 ${segment.index + 1}/${segment.total} 段；请保持页面开启。`,
+            ),
           );
 
           const result = await transcribeAudio({
@@ -552,7 +631,7 @@ export function TranscriptionWorkbench() {
           const section = segment.total > 1
             ? ["srt", "vtt"].includes(effectiveResponseFormat)
               ? result
-              : `## 片段 ${segment.index + 1}/${segment.total} · ${formatClock(segment.startSeconds)}–${formatClock(segment.startSeconds + segment.durationSeconds)}\n\n${result}`
+              : `## ${ui("Segment", "片段")} ${segment.index + 1}/${segment.total} · ${formatClock(segment.startSeconds)}–${formatClock(segment.startSeconds + segment.durationSeconds)}\n\n${result}`
             : result;
           completedTranscripts.push(section);
           setTranscript(
@@ -578,9 +657,18 @@ export function TranscriptionWorkbench() {
       setMessage(
         usedAutomaticSegmentation
           ? speakerDiarization
-            ? "全部片段转写完成。时间戳已合并为原录音时间；跨片段的说话人编号可能重新分配。"
-            : "全部自动分段转写完成，结果已按原录音顺序合并。"
-          : "完成。你可以直接修改文字，或下载为 Markdown。 ",
+            ? ui(
+                "All segments are complete. Timestamps use the original timeline; speaker numbers may be reassigned between segments.",
+                "全部片段转写完成。时间戳已合并为原录音时间；跨片段的说话人编号可能重新分配。",
+              )
+            : ui(
+                "All automatically segmented audio is complete and merged in the original order.",
+                "全部自动分段转写完成，结果已按原录音顺序合并。",
+              )
+          : ui(
+              "Complete. You can edit the transcript or download it as Markdown.",
+              "完成。你可以直接修改文字，或下载为 Markdown。",
+            ),
       );
     } catch (error) {
       setStatus("error");
@@ -589,13 +677,15 @@ export function TranscriptionWorkbench() {
         setAudioToolStatus(controller.signal.aborted ? "idle" : "error");
         setAudioToolProgress(0);
         setAudioToolMessage(
-          controller.signal.aborted ? "已取消自动分段。" : "音频自动转码或分段失败。",
+          controller.signal.aborted
+            ? ui("Automatic segmentation cancelled.", "已取消自动分段。")
+            : ui("Automatic audio transcoding or segmentation failed.", "音频自动转码或分段失败。"),
         );
       }
       setMessage(
         controller.signal.aborted
-          ? "转写已取消。"
-          : friendlyError(error),
+          ? ui("Transcription cancelled.", "转写已取消。")
+          : localizeRuntimeMessage(friendlyError(error), locale),
       );
     } finally {
       abortRef.current = null;
@@ -644,38 +734,68 @@ export function TranscriptionWorkbench() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="../" aria-label="返回 Henry Huang 主页">
+        <a className="brand" href="../" aria-label={ui("Return to Henry Huang's homepage", "返回 Henry Huang 主页")}>
           <span className="brand-name">HENRY<span>.H</span></span>
           <span className="brand-product">/ Whisper Desk</span>
         </a>
         <div className="topbar-actions">
+          <div className="language-switch" role="group" aria-label={ui("Interface language", "界面语言")}>
+            <button
+              type="button"
+              className={locale === "en" ? "is-active" : ""}
+              aria-pressed={locale === "en"}
+              onClick={() => setLocale("en")}
+            >
+              EN
+            </button>
+            <span aria-hidden="true">/</span>
+            <button
+              type="button"
+              className={locale === "zh" ? "is-active" : ""}
+              aria-pressed={locale === "zh"}
+              onClick={() => setLocale("zh")}
+            >
+              中
+            </button>
+          </div>
           <div className="privacy-pill">
             <span className="privacy-dot" aria-hidden="true" />
-            Key 仅保存在当前页面内存
+            {ui("Key stays in page memory only", "Key 仅保存在当前页面内存")}
           </div>
-          <a className="home-link" href="../">返回主页</a>
+          <a className="home-link" href="../">{ui("Home", "返回主页")}</a>
         </div>
       </header>
 
       <section className="hero" id="top">
         <p className="eyebrow">PERSONAL TOOL / AUDIO TRANSCRIPTION</p>
-        <h1>让每一段声音，<br /><em>清晰落在纸上。</em></h1>
+        <h1>
+          {locale === "en" ? (
+            <>Turn every voice<br /><em>into clear words.</em></>
+          ) : (
+            <>让每一段声音，<br /><em>清晰落在纸上。</em></>
+          )}
+        </h1>
         <p className="hero-copy">
-          文件准备和结果整理都在浏览器完成。转写时，音频会从你的浏览器直接发送给所选模型提供商，不经过自建服务器。
+          {ui(
+            "File preparation and result assembly happen in your browser. Audio is sent directly to the selected model provider, with no custom server in between.",
+            "文件准备和结果整理都在浏览器完成。转写时，音频会从你的浏览器直接发送给所选模型提供商，不经过自建服务器。",
+          )}
         </p>
-        <div className="hero-meta" aria-label="产品特点">
-          <span>无需安装</span><span>不保存密钥</span><span>结果可编辑</span>
+        <div className="hero-meta" aria-label={ui("Product highlights", "产品特点")}>
+          <span>{ui("No install", "无需安装")}</span>
+          <span>{ui("No key storage", "不保存密钥")}</span>
+          <span>{ui("Editable results", "结果可编辑")}</span>
         </div>
       </section>
 
-      <section className="workspace" aria-label="音频转写工作台">
+      <section className="workspace" aria-label={ui("Audio transcription workspace", "音频转写工作台")}>
         <div className="control-column">
           <section className="panel setup-panel">
             <div className="panel-heading">
               <span className="step-number">01</span>
-              <div><p className="overline">ACCESS</p><h2>连接模型提供商</h2></div>
+              <div><p className="overline">ACCESS</p><h2>{ui("Connect a provider", "连接模型提供商")}</h2></div>
             </div>
-            <label className="field-label" htmlFor="provider">模型提供商</label>
+            <label className="field-label" htmlFor="provider">{ui("Model provider", "模型提供商")}</label>
             <select
               id="provider"
               className="provider-select"
@@ -706,18 +826,19 @@ export function TranscriptionWorkbench() {
                 spellCheck={false}
               />
               <button type="button" onClick={() => setShowKey((value) => !value)}>
-                {showKey ? "隐藏" : "显示"}
+                {showKey ? ui("Hide", "隐藏") : ui("Show", "显示")}
               </button>
             </div>
-            <p className="field-note">
-              切换提供商会清空 Key；不会写入 Cookie、Local Storage 或项目文件。关闭页面后即清除。
-            </p>
+            <p className="field-note">{ui(
+              "Switching providers clears the key. It is never written to cookies, local storage, or project files, and disappears when the page closes.",
+              "切换提供商会清空 Key；不会写入 Cookie、Local Storage 或项目文件。关闭页面后即清除。",
+            )}</p>
           </section>
 
           <section className="panel file-panel">
             <div className="panel-heading">
               <span className="step-number">02</span>
-              <div><p className="overline">SOURCE</p><h2>选择录音</h2></div>
+              <div><p className="overline">SOURCE</p><h2>{ui("Choose a recording", "选择录音")}</h2></div>
             </div>
             <input
               ref={inputRef}
@@ -736,7 +857,7 @@ export function TranscriptionWorkbench() {
               onDrop={handleDrop}
               role="button"
               tabIndex={0}
-              aria-label="选择或拖放音频文件"
+              aria-label={ui("Choose or drop an audio file", "选择或拖放音频文件")}
             >
               <span className="drop-glyph" aria-hidden="true">↗</span>
               {file ? (
@@ -744,29 +865,36 @@ export function TranscriptionWorkbench() {
                   <strong>{file.name}</strong>
                   <span>
                     {formatBytes(file.size)} · {
-                      fileExceedsUploadLimit ? "将自动本地转码分段" : "准备上传"
+                      fileExceedsUploadLimit
+                        ? ui("will be transcoded and segmented locally", "将自动本地转码分段")
+                        : ui("ready to upload", "准备上传")
                     }
                   </span>
                 </div>
               ) : (
-                <div><strong>把音频拖到这里</strong><span>或点击浏览文件</span></div>
+                <div>
+                  <strong>{ui("Drop audio here", "把音频拖到这里")}</strong>
+                  <span>{ui("or click to browse", "或点击浏览文件")}</span>
+                </div>
               )}
-              <span className="file-limit">MP3 · M4A · WAV · WEBM · API 上限 {formatBytes(OPENAI_FILE_LIMIT)}</span>
+              <span className="file-limit">
+                MP3 · M4A · WAV · WEBM · {ui("API limit", "API 上限")} {formatBytes(OPENAI_FILE_LIMIT)}
+              </span>
             </div>
             {fileError && <p className="error-copy" role="alert">{fileError}</p>}
             {file && (
-              <div className="audio-tools" aria-label="浏览器端音频处理">
+              <div className="audio-tools" aria-label={ui("In-browser audio processing", "浏览器端音频处理")}>
                 <div className="audio-tools-heading">
                   <div>
                     <p className="overline">LOCAL AUDIO LAB</p>
-                    <h3>压缩与兼容修复</h3>
+                    <h3>{ui("Compression & compatibility", "压缩与兼容修复")}</h3>
                   </div>
-                  <span className="local-only-badge">仅在本机处理</span>
+                  <span className="local-only-badge">{ui("Local only", "仅在本机处理")}</span>
                 </div>
 
                 <div className="compression-controls">
                   <label>
-                    <span>压缩目标</span>
+                    <span>{ui("Target size", "压缩目标")}</span>
                     <div className="number-suffix-field">
                       <input
                         type="number"
@@ -776,30 +904,30 @@ export function TranscriptionWorkbench() {
                         value={targetSizeMb}
                         disabled={isAudioProcessing}
                         onChange={(event) => setTargetSizeMb(Math.max(1, Math.min(24, Number(event.target.value))))}
-                        aria-label="压缩目标大小 MB"
+                        aria-label={ui("Compression target size in MB", "压缩目标大小 MB")}
                       />
                       <span>MB</span>
                     </div>
                   </label>
                   <label>
-                    <span>最低码率</span>
+                    <span>{ui("Minimum bitrate", "最低码率")}</span>
                     <select
                       value={minimumBitrateKbps}
                       disabled={isAudioProcessing}
                       onChange={(event) => setMinimumBitrateKbps(Number(event.target.value))}
                     >
-                      <option value="16">16 kbps · 极长录音</option>
-                      <option value="24">24 kbps · 推荐</option>
-                      <option value="32">32 kbps · 更清晰</option>
-                      <option value="48">48 kbps · 高保真语音</option>
+                      <option value="16">16 kbps · {ui("very long audio", "极长录音")}</option>
+                      <option value="24">24 kbps · {ui("recommended", "推荐")}</option>
+                      <option value="32">32 kbps · {ui("clearer", "更清晰")}</option>
+                      <option value="48">48 kbps · {ui("high-fidelity speech", "高保真语音")}</option>
                     </select>
                   </label>
                 </div>
 
-                <p className="audio-tool-note">
-                  压缩输出为 16 kHz 单声道 MP3/LAME ABR。码率按时长和目标大小计算，并在帧间动态分配；
-                  最低码率可能使最终文件略大于目标。
-                </p>
+                <p className="audio-tool-note">{ui(
+                  "Compression outputs 16 kHz mono MP3 using LAME ABR. Bitrate is calculated from duration and target size, then distributed dynamically across frames. The minimum bitrate may make the final file slightly larger than the target.",
+                  "压缩输出为 16 kHz 单声道 MP3/LAME ABR。码率按时长和目标大小计算，并在帧间动态分配；最低码率可能使最终文件略大于目标。",
+                )}</p>
 
                 <div className="audio-tool-actions">
                   <button
@@ -808,31 +936,31 @@ export function TranscriptionWorkbench() {
                     disabled={isAudioProcessing}
                     onClick={compressSelectedAudio}
                   >
-                    压缩到约 {targetSizeMb} MB
+                    {ui("Compress to about", "压缩到约")} {targetSizeMb} MB
                   </button>
                   <button
                     type="button"
                     disabled={isAudioProcessing}
                     onClick={repairSelectedAudio}
                   >
-                    兼容修复为 WAV
+                    {ui("Repair as WAV", "兼容修复为 WAV")}
                   </button>
                   <button
                     type="button"
                     disabled={isAudioProcessing}
                     onClick={diagnoseSelectedAudio}
                   >
-                    深度检查文件
+                    {ui("Deep-inspect file", "深度检查文件")}
                   </button>
                   {isAudioProcessing && (
-                    <button type="button" onClick={cancelProcessing}>取消处理</button>
+                    <button type="button" onClick={cancelProcessing}>{ui("Cancel", "取消处理")}</button>
                   )}
                 </div>
 
-                <p className="audio-tool-note repair-note">
-                  修复会完整解码为 16 kHz 单声道 WAV PCM，不会造成第二次感知有损编码；
-                  WAV 通常会显著变大，超过 25 MB 时还需再压缩为 MP3。
-                </p>
+                <p className="audio-tool-note repair-note">{ui(
+                  "Repair fully decodes the audio to 16 kHz mono WAV PCM without another perceptual lossy encode. WAV files are usually much larger and may still need MP3 compression above 25 MB.",
+                  "修复会完整解码为 16 kHz 单声道 WAV PCM，不会造成第二次感知有损编码；WAV 通常会显著变大，超过 25 MB 时还需再压缩为 MP3。",
+                )}</p>
 
                 {(audioToolMessage || isAudioProcessing) && (
                   <div
@@ -848,14 +976,15 @@ export function TranscriptionWorkbench() {
 
                 {fileWasProcessed && !isAudioProcessing && (
                   <div className="processed-file-actions">
-                    <button type="button" onClick={downloadProcessedAudio}>下载处理后的音频</button>
-                    <button type="button" onClick={restoreOriginalAudio}>恢复原文件</button>
+                    <button type="button" onClick={downloadProcessedAudio}>{ui("Download processed audio", "下载处理后的音频")}</button>
+                    <button type="button" onClick={restoreOriginalAudio}>{ui("Restore original", "恢复原文件")}</button>
                   </div>
                 )}
 
-                <p className="audio-engine-note">
-                  首次点击会从 CDN 按需加载约 31 MB 的单线程 ffmpeg.wasm；GitHub Pages 无需后端。
-                </p>
+                <p className="audio-engine-note">{ui(
+                  "The first audio operation loads approximately 31 MB of single-threaded ffmpeg.wasm from a CDN. GitHub Pages needs no backend.",
+                  "首次点击会从 CDN 按需加载约 31 MB 的单线程 ffmpeg.wasm；GitHub Pages 无需后端。",
+                )}</p>
               </div>
             )}
           </section>
@@ -863,40 +992,40 @@ export function TranscriptionWorkbench() {
           <section className="panel settings-panel">
             <div className="panel-heading compact">
               <span className="step-number">03</span>
-              <div><p className="overline">DETAILS</p><h2>调整识别</h2></div>
+              <div><p className="overline">DETAILS</p><h2>{ui("Recognition settings", "调整识别")}</h2></div>
             </div>
             <div className="field-grid">
-              <label><span>模型</span>
+              <label><span>{ui("Model", "模型")}</span>
                 <select value={model} onChange={(event) => setModel(event.target.value)}>
                   {provider === "openai" ? (
                     <>
-                      <option value="gpt-transcribe">OpenAI: GPT Transcribe · 推荐</option>
+                      <option value="gpt-transcribe">OpenAI: GPT Transcribe · {ui("recommended", "推荐")}</option>
                       <option value="gpt-4o-mini-transcribe">GPT-4o mini Transcribe</option>
                       <option value="gpt-4o-transcribe">GPT-4o Transcribe</option>
-                      <option value="whisper-1">Whisper-1 · 兼容原项目</option>
+                      <option value="whisper-1">Whisper-1 · {ui("legacy compatible", "兼容原项目")}</option>
                     </>
                   ) : (
                     <>
-                      <option value="x-ai/grok-stt-1.0">SpaceXAI: Grok STT 1.0 · 多人推荐</option>
+                      <option value="x-ai/grok-stt-1.0">SpaceXAI: Grok STT 1.0 · {ui("speaker-aware", "多人推荐")}</option>
                       <option value="openai/whisper-large-v3-turbo">OpenAI: Whisper Large V3 Turbo</option>
                     </>
                   )}
                 </select>
               </label>
-              <label><span>返回格式</span>
+              <label><span>{ui("Response format", "返回格式")}</span>
                 <select
                   value={effectiveResponseFormat}
                   disabled={availableResponseFormats.length === 1}
                   onChange={(event) => setResponseFormat(event.target.value as ResponseFormat)}
                 >
                   {availableResponseFormats.map((format) => (
-                    <option key={format} value={format}>{RESPONSE_FORMAT_LABELS[format]}</option>
+                    <option key={format} value={format}>{RESPONSE_FORMAT_LABELS[format][locale]}</option>
                   ))}
                 </select>
               </label>
             </div>
             <div className="field-grid">
-              <label><span>语言提示</span>
+              <label><span>{ui("Language hint", "语言提示")}</span>
                 <select
                   value={effectiveLanguagePreset}
                   onChange={(event) => setLanguagePreset(event.target.value)}
@@ -907,15 +1036,15 @@ export function TranscriptionWorkbench() {
                       value={preset.value}
                       disabled={Boolean("multiple" in preset && preset.multiple && !supportsMultipleLanguages)}
                     >
-                      {preset.label}
+                      {preset[locale]}
                     </option>
                   ))}
                 </select>
               </label>
-              <label><span>音频分段</span>
+              <label><span>{ui("Audio segmentation", "音频分段")}</span>
                 {isOpenRouter ? (
                   <select value="client-10m" disabled>
-                    <option value="client-10m">客户端每 10 分钟自动切段</option>
+                    <option value="client-10m">{ui("Client-side · every 10 minutes", "客户端每 10 分钟自动切段")}</option>
                   </select>
                 ) : (
                   <select
@@ -923,9 +1052,9 @@ export function TranscriptionWorkbench() {
                     disabled={effectiveModel === "whisper-1"}
                     onChange={(event) => setChunkingStrategy(event.target.value as ChunkingStrategy)}
                   >
-                    <option value="auto">自动检测语音 · 推荐</option>
-                    <option value="single">整段处理</option>
-                    <option value="server_vad">手动设置 VAD</option>
+                    <option value="auto">{ui("Automatic speech detection · recommended", "自动检测语音 · 推荐")}</option>
+                    <option value="single">{ui("Single request", "整段处理")}</option>
+                    <option value="server_vad">{ui("Manual VAD", "手动设置 VAD")}</option>
                   </select>
                 )}
               </label>
@@ -933,36 +1062,63 @@ export function TranscriptionWorkbench() {
 
             <p className="field-note model-note">
               {isGrokStt
-                ? "Grok STT 支持逐词时间戳、可选说话人分离与 25+ 种语言；说话人数量由模型自动判断。OpenRouter 若返回逐词 words，网页会按 speaker 编号排版；否则保留纯文字结果。"
+                ? ui(
+                    "Grok STT supports word timestamps, optional speaker diarization, and 25+ languages. It detects speaker count automatically. If OpenRouter returns word data, the page formats it by speaker; otherwise it keeps the plain transcript.",
+                    "Grok STT 支持逐词时间戳、可选说话人分离与 25+ 种语言；说话人数量由模型自动判断。OpenRouter 若返回逐词 words，网页会按 speaker 编号排版；否则保留纯文字结果。",
+                  )
                 : effectiveModel === "openai/whisper-large-v3-turbo"
-                  ? "Whisper Large V3 Turbo 支持 99+ 种语言；通过 OpenRouter 返回纯文字，不提供可靠的说话人标签。"
+                  ? ui(
+                      "Whisper Large V3 Turbo supports 99+ languages. Through OpenRouter it returns plain text without reliable speaker labels.",
+                      "Whisper Large V3 Turbo 支持 99+ 种语言；通过 OpenRouter 返回纯文字，不提供可靠的说话人标签。",
+                    )
                 : effectiveModel === "gpt-transcribe"
-                ? "GPT Transcribe 可转写多人对话，但不会返回可靠的说话人标签；支持多个语言代码和关键词提示。"
+                ? ui(
+                    "GPT Transcribe handles multi-speaker conversations but does not return reliable speaker labels. It supports multiple language codes and keyword hints.",
+                    "GPT Transcribe 可转写多人对话，但不会返回可靠的说话人标签；支持多个语言代码和关键词提示。",
+                  )
                 : effectiveModel === "whisper-1"
-                  ? "Whisper 可转写多人对话，但不会返回可靠的说话人标签；网页会按整段提交。"
-                  : "此模型只使用第一个语言代码，并固定返回 JSON。"}
+                  ? ui(
+                      "Whisper can transcribe multi-speaker conversations but does not return reliable speaker labels. The page submits it as one block unless client-side size segmentation is required.",
+                      "Whisper 可转写多人对话，但不会返回可靠的说话人标签；网页会按整段提交。",
+                    )
+                  : ui("This model uses only the first language code and returns JSON.", "此模型只使用第一个语言代码，并固定返回 JSON。")}
             </p>
 
             <p className="field-note language-note">
               {supportsMultipleLanguages
-                ? "GPT Transcribe 会把多语言预设作为 languages[] 提交，可提示同一录音中预期出现的多种语言。"
-                : "当前模型只接受一个 language 提示；仍可识别其他语言，但不会提交多个语言代码。"}
+                ? ui(
+                    "GPT Transcribe submits multilingual presets as languages[] to hint that several languages may appear in one recording.",
+                    "GPT Transcribe 会把多语言预设作为 languages[] 提交，可提示同一录音中预期出现的多种语言。",
+                  )
+                : ui(
+                    "This model accepts one language hint. It may still recognize other languages, but only one code is submitted.",
+                    "当前模型只接受一个 language 提示；仍可识别其他语言，但不会提交多个语言代码。",
+                  )}
               {effectiveLanguagePreset === "zh-cn"
-                ? ` 中文偏好使用${supportsMultipleLanguages ? "官方区域代码 zh-cn" : "兼容代码 zh"}；模型仍可能根据录音内容决定最终字形。`
+                ? ui(
+                    ` Chinese uses ${supportsMultipleLanguages ? "the regional code zh-cn" : "the compatible code zh"}; the model may still choose character forms from the recording context.`,
+                    ` 中文偏好使用${supportsMultipleLanguages ? "官方区域代码 zh-cn" : "兼容代码 zh"}；模型仍可能根据录音内容决定最终字形。`,
+                  )
                 : ""}
             </p>
 
             <p className="field-note diarization-split-note">
               {isOpenRouter
-                ? "OpenRouter 文档标注 60 秒上游处理超时，因此超过 10 分钟或 25 MB 时，网页会先在本机按 10 分钟物理分段，再以 JSON/Base64 顺序上传。"
-                : "超过 30 分钟或 25 MB 时，网页会在本机转为 16 kHz 单声道 MP3，按 30 分钟自动物理分段，再逐段上传。"}
+                ? ui(
+                    "OpenRouter documents a 60-second upstream processing timeout. Audio over 10 minutes or 25 MB is therefore split locally into 10-minute segments and uploaded sequentially as JSON/Base64.",
+                    "OpenRouter 文档标注 60 秒上游处理超时，因此超过 10 分钟或 25 MB 时，网页会先在本机按 10 分钟物理分段，再以 JSON/Base64 顺序上传。",
+                  )
+                : ui(
+                    "Audio over 30 minutes or 25 MB is converted locally to 16 kHz mono MP3, split into 30-minute segments, and uploaded sequentially.",
+                    "超过 30 分钟或 25 MB 时，网页会在本机转为 16 kHz 单声道 MP3，按 30 分钟自动物理分段，再逐段上传。",
+                  )}
             </p>
 
             {!isOpenRouter && effectiveChunkingStrategy === "server_vad" && (
-              <div className="vad-settings" aria-label="手动 VAD 参数">
-                <p className="subsection-title">语音活动检测 / SERVER VAD</p>
+              <div className="vad-settings" aria-label={ui("Manual VAD parameters", "手动 VAD 参数")}>
+                <p className="subsection-title">{ui("VOICE ACTIVITY DETECTION", "语音活动检测")} / SERVER VAD</p>
                 <div className="vad-grid">
-                  <label><span>灵敏度阈值</span>
+                  <label><span>{ui("Sensitivity threshold", "灵敏度阈值")}</span>
                     <input
                       type="number"
                       min="0"
@@ -972,7 +1128,7 @@ export function TranscriptionWorkbench() {
                       onChange={(event) => setVadThreshold(Number(event.target.value))}
                     />
                   </label>
-                  <label><span>前置保留 ms</span>
+                  <label><span>{ui("Prefix padding ms", "前置保留 ms")}</span>
                     <input
                       type="number"
                       min="0"
@@ -981,7 +1137,7 @@ export function TranscriptionWorkbench() {
                       onChange={(event) => setVadPrefixPaddingMs(Number(event.target.value))}
                     />
                   </label>
-                  <label><span>静音判停 ms</span>
+                  <label><span>{ui("Silence cutoff ms", "静音判停 ms")}</span>
                     <input
                       type="number"
                       min="0"
@@ -996,25 +1152,34 @@ export function TranscriptionWorkbench() {
 
             {(effectiveModel === "gpt-transcribe" || isGrokStt) && (
               <>
-                <label className="field-label" htmlFor="keywords">关键词提示</label>
+                <label className="field-label" htmlFor="keywords">{ui("Keyword hints", "关键词提示")}</label>
                 <textarea
                   id="keywords"
                   value={keywords}
                   onChange={(event) => setKeywords(event.target.value)}
-                  placeholder={"每行一个词或短语，例如：\n产品名称\n人物姓名\n专业术语"}
+                  placeholder={ui(
+                    "One word or phrase per line, for example:\nProduct name\nPerson's name\nTechnical term",
+                    "每行一个词或短语，例如：\n产品名称\n人物姓名\n专业术语",
+                  )}
                   rows={3}
                 />
                 <p className="field-note">
                   {isGrokStt
-                    ? "Grok 最多接受 100 个 keyterm，每项不超过 50 个字符；网页会通过 OpenRouter 的 x-ai provider options 转发。"
-                    : "关键词是识别提示，不会强制模型输出；请只填写录音中可能出现的词。"}
+                    ? ui(
+                        "Grok accepts up to 100 keyterms of 50 characters each. The page forwards them through OpenRouter's x-ai provider options.",
+                        "Grok 最多接受 100 个 keyterm，每项不超过 50 个字符；网页会通过 OpenRouter 的 x-ai provider options 转发。",
+                      )
+                    : ui(
+                        "Keywords guide recognition but do not force output. Enter only terms likely to occur in the recording.",
+                        "关键词是识别提示，不会强制模型输出；请只填写录音中可能出现的词。",
+                      )}
                 </p>
               </>
             )}
 
             {!isOpenRouter && (
               <>
-                <label className="field-label prompt-label" htmlFor="prompt">上下文提示 / 输出风格</label>
+                <label className="field-label prompt-label" htmlFor="prompt">{ui("Context / output style", "上下文提示 / 输出风格")}</label>
                 <textarea
                   id="prompt"
                   value={prompt}
@@ -1025,10 +1190,10 @@ export function TranscriptionWorkbench() {
             )}
 
             {isGrokStt && (
-              <div className="vad-settings" aria-label="Grok 语音活动检测参数">
+              <div className="vad-settings" aria-label={ui("Grok voice activity parameters", "Grok 语音活动检测参数")}>
                 <p className="subsection-title">GROK STT / PROVIDER OPTIONS</p>
                 <div className="vad-grid grok-vad-grid">
-                  <label><span>语音门限</span>
+                  <label><span>{ui("Speech threshold", "语音门限")}</span>
                     <input
                       type="number"
                       min="0"
@@ -1039,29 +1204,38 @@ export function TranscriptionWorkbench() {
                     />
                   </label>
                 </div>
-                <p className="field-note">`vad_threshold` 越低越容易保留轻声或噪声中的语音；0 会关闭语音活动门控。</p>
+                <p className="field-note">{ui(
+                  "A lower vad_threshold preserves quieter or noisier speech; 0 disables the voice-activity gate.",
+                  "`vad_threshold` 越低越容易保留轻声或噪声中的语音；0 会关闭语音活动门控。",
+                )}</p>
               </div>
             )}
 
-            <div className="recognition-options" aria-label="高级识别选项">
+            <div className="recognition-options" aria-label={ui("Advanced recognition options", "高级识别选项")}>
               {isGrokStt ? (
                 <label className="option-card" htmlFor="grok-diarization">
                   <input
                     id="grok-diarization"
                     type="checkbox"
-                    aria-label="说话人分离"
+                    aria-label={ui("Speaker diarization", "说话人分离")}
                     checked={grokDiarization}
                     onChange={(event) => setGrokDiarization(event.target.checked)}
                   />
                   <span>
-                    <strong>说话人分离</strong>
-                    <small>提交 diarize=true；自动判断人数并尝试读取逐词 speaker 编号</small>
+                    <strong>{ui("Speaker diarization", "说话人分离")}</strong>
+                    <small>{ui(
+                      "Sends diarize=true, detects speaker count automatically, and attempts to read word-level speaker IDs",
+                      "提交 diarize=true；自动判断人数并尝试读取逐词 speaker 编号",
+                    )}</small>
                   </span>
                 </label>
               ) : (
                 <div className="option-card capability-card">
                   <span className="capability-indicator" aria-hidden="true">—</span>
-                  <span><strong>普通多人转写</strong><small>能识别多人内容，但不会标记每句话属于谁</small></span>
+                  <span>
+                    <strong>{ui("Standard multi-speaker transcription", "普通多人转写")}</strong>
+                    <small>{ui("Recognizes multiple voices but does not label who said each line", "能识别多人内容，但不会标记每句话属于谁")}</small>
+                  </span>
                 </div>
               )}
 
@@ -1070,13 +1244,13 @@ export function TranscriptionWorkbench() {
                   <input
                     id="include-speaker-timestamps"
                     type="checkbox"
-                    aria-label="显示分段时间"
+                    aria-label={ui("Show segment times", "显示分段时间")}
                     checked={includeTimestamps}
                     onChange={(event) => setIncludeTimestamps(event.target.checked)}
                   />
                   <span>
-                    <strong>显示分段时间</strong>
-                    <small>给每个说话人片段加入开始与结束时间</small>
+                    <strong>{ui("Show segment times", "显示分段时间")}</strong>
+                    <small>{ui("Add start and end times to each speaker segment", "给每个说话人片段加入开始与结束时间")}</small>
                   </span>
                 </label>
               )}
@@ -1087,22 +1261,28 @@ export function TranscriptionWorkbench() {
                     <input
                       id="grok-formatting"
                       type="checkbox"
-                      aria-label="数字与单位格式化"
+                      aria-label={ui("Format numbers and units", "数字与单位格式化")}
                       checked={grokTextFormatting}
                       disabled={!effectiveLanguagePreset}
                       onChange={(event) => setGrokTextFormatting(event.target.checked)}
                     />
-                    <span><strong>数字与单位格式化</strong><small>有语言提示时提交 format=true</small></span>
+                    <span>
+                      <strong>{ui("Format numbers & units", "数字与单位格式化")}</strong>
+                      <small>{ui("Sends format=true when a language hint is selected", "有语言提示时提交 format=true")}</small>
+                    </span>
                   </label>
                   <label className="option-card" htmlFor="grok-filler-words">
                     <input
                       id="grok-filler-words"
                       type="checkbox"
-                      aria-label="保留填充词"
+                      aria-label={ui("Keep filler words", "保留填充词")}
                       checked={grokFillerWords}
                       onChange={(event) => setGrokFillerWords(event.target.checked)}
                     />
-                    <span><strong>保留填充词</strong><small>保留“嗯、呃、uh、um”等口语填充词</small></span>
+                    <span>
+                      <strong>{ui("Keep filler words", "保留填充词")}</strong>
+                      <small>{ui("Keep fillers such as uh and um", "保留“嗯、呃、uh、um”等口语填充词")}</small>
+                    </span>
                   </label>
                 </>
               )}
@@ -1114,14 +1294,14 @@ export function TranscriptionWorkbench() {
                 <input
                   id="stream-response"
                   type="checkbox"
-                  aria-label="流式返回"
+                  aria-label={ui("Stream response", "流式返回")}
                   checked={stream && supportsStreaming}
                   disabled={!supportsStreaming}
                   onChange={(event) => setStream(event.target.checked)}
                 />
                 <span>
-                  <strong>流式返回</strong>
-                  <small>边识别边显示文字；Whisper 不支持</small>
+                  <strong>{ui("Stream response", "流式返回")}</strong>
+                  <small>{ui("Show text while it is recognized; unavailable for Whisper", "边识别边显示文字；Whisper 不支持")}</small>
                 </span>
               </label>
 
@@ -1132,14 +1312,14 @@ export function TranscriptionWorkbench() {
                 <input
                   id="include-logprobs"
                   type="checkbox"
-                  aria-label="返回 Logprobs"
+                  aria-label={ui("Return log probabilities", "返回 Logprobs")}
                   checked={includeLogprobs && supportsLogprobs}
                   disabled={!supportsLogprobs}
                   onChange={(event) => setIncludeLogprobs(event.target.checked)}
                 />
                 <span>
-                  <strong>返回 Logprobs</strong>
-                  <small>仅 GPT-4o Transcribe 系列 JSON 响应支持</small>
+                  <strong>{ui("Return log probabilities", "返回 Logprobs")}</strong>
+                  <small>{ui("Available only for GPT-4o Transcribe JSON responses", "仅 GPT-4o Transcribe 系列 JSON 响应支持")}</small>
                 </span>
               </label>
 
@@ -1149,37 +1329,46 @@ export function TranscriptionWorkbench() {
                     <input
                       id="word-timestamps"
                       type="checkbox"
-                      aria-label="词级时间戳"
+                      aria-label={ui("Word timestamps", "词级时间戳")}
                       checked={wordTimestamps}
                       onChange={(event) => setWordTimestamps(event.target.checked)}
                     />
-                    <span><strong>词级时间戳</strong><small>更精细，但会增加处理延迟</small></span>
+                    <span>
+                      <strong>{ui("Word timestamps", "词级时间戳")}</strong>
+                      <small>{ui("More precise, with additional processing latency", "更精细，但会增加处理延迟")}</small>
+                    </span>
                   </label>
                   <label className="option-card" htmlFor="segment-timestamps">
                     <input
                       id="segment-timestamps"
                       type="checkbox"
-                      aria-label="段落时间戳"
+                      aria-label={ui("Segment timestamps", "段落时间戳")}
                       checked={segmentTimestamps}
                       onChange={(event) => setSegmentTimestamps(event.target.checked)}
                     />
-                    <span><strong>段落时间戳</strong><small>返回每个语音片段的时间范围</small></span>
+                    <span>
+                      <strong>{ui("Segment timestamps", "段落时间戳")}</strong>
+                      <small>{ui("Return a time range for each speech segment", "返回每个语音片段的时间范围")}</small>
+                    </span>
                   </label>
                 </>
               )}
             </div>
             <div className="temperature-row">
-              <label htmlFor="temperature">随机度</label>
+              <label htmlFor="temperature">{ui("Temperature", "随机度")}</label>
               <input id="temperature" type="range" min="0" max="1" step="0.1" value={temperature} onChange={(event) => setTemperature(Number(event.target.value))} />
               <output>{temperature.toFixed(1)}</output>
             </div>
-            <p className="field-note temperature-note">0 更专注、结果更确定；数值越高，模型输出的随机性越大。</p>
+            <p className="field-note temperature-note">{ui(
+              "0 is focused and deterministic; higher values increase output variation.",
+              "0 更专注、结果更确定；数值越高，模型输出的随机性越大。",
+            )}</p>
           </section>
 
           <details className="request-preview">
             <summary>
-              <span>查看提交给模型的参数</span>
-              <small>JSON / 已隐藏 API Key 与音频内容</small>
+              <span>{ui("View parameters sent to the model", "查看提交给模型的参数")}</span>
+              <small>{ui("JSON / API key and audio hidden", "JSON / 已隐藏 API Key 与音频内容")}</small>
             </summary>
             <pre><code>{JSON.stringify(requestPreview, null, 2)}</code></pre>
           </details>
@@ -1187,8 +1376,8 @@ export function TranscriptionWorkbench() {
           <div className="action-row">
             <button className="primary-button" type="button" disabled={!canSubmit} onClick={runTranscription}>
               {status === "uploading" ? (
-                <><span className="spinner" />{roundedUploadPercent < 100 ? "正在上传" : "正在转写"}</>
-              ) : <>开始转写 <span aria-hidden="true">→</span></>}
+                <><span className="spinner" />{roundedUploadPercent < 100 ? ui("Uploading", "正在上传") : ui("Transcribing", "正在转写")}</>
+              ) : <>{ui("Start transcription", "开始转写")} <span aria-hidden="true">→</span></>}
             </button>
             {status === "uploading" ? (
               <button
@@ -1200,14 +1389,17 @@ export function TranscriptionWorkbench() {
                   if (isAudioProcessing) {
                     setAudioToolStatus("idle");
                     setAudioToolProgress(0);
-                    setAudioToolMessage("已取消自动分段。再次处理时需要重新加载音频核心。");
+                    setAudioToolMessage(ui(
+                      "Automatic segmentation cancelled. The audio engine must reload before the next operation.",
+                      "已取消自动分段。再次处理时需要重新加载音频核心。",
+                    ));
                   }
                 }}
               >
-                取消
+                {ui("Cancel", "取消")}
               </button>
             ) : file ? (
-              <button className="text-button" type="button" onClick={reset}>重新选择</button>
+              <button className="text-button" type="button" onClick={reset}>{ui("Choose again", "重新选择")}</button>
             ) : null}
           </div>
 
@@ -1218,7 +1410,7 @@ export function TranscriptionWorkbench() {
                 <strong>
                   {uploadProgress.computable || roundedUploadPercent >= 100
                     ? `${roundedUploadPercent}%`
-                    : "计算中"}
+                    : ui("Calculating", "计算中")}
                 </strong>
               </div>
               <progress
@@ -1226,7 +1418,7 @@ export function TranscriptionWorkbench() {
                 value={uploadProgress.computable || roundedUploadPercent >= 100
                   ? roundedUploadPercent
                   : undefined}
-                aria-label="音频上传进度"
+                aria-label={ui("Audio upload progress", "音频上传进度")}
               />
               <div className="upload-progress-meta">
                 {uploadProgress.computable && uploadProgress.total > 0 ? (
@@ -1235,7 +1427,7 @@ export function TranscriptionWorkbench() {
                     {" / "}{formatBytes(uploadProgress.total)}
                   </span>
                 ) : (
-                  <span>流式模式下浏览器不提供精确上传字节</span>
+                  <span>{ui("Exact uploaded bytes are unavailable in streaming mode", "流式模式下浏览器不提供精确上传字节")}</span>
                 )}
                 <span>{segmentBatch?.fileName || file?.name}</span>
               </div>
@@ -1245,15 +1437,19 @@ export function TranscriptionWorkbench() {
           {(audioDiagnostics || requestDebug) && (
             <details className="request-preview debug-preview">
               <summary>
-                <span>查看深度诊断信息</span>
-                <small>SHA-256 / 完整解码 / Provider Request ID</small>
+                <span>{ui("View deep diagnostics", "查看深度诊断信息")}</span>
+                <small>{ui("SHA-256 / full decode / provider request ID", "SHA-256 / 完整解码 / Provider Request ID")}</small>
               </summary>
               <div className="debug-preview-toolbar">
                 <span>
-                  本地解码：{audioDiagnostics?.ffmpeg_full_decode === "passed" ? "通过" : audioDiagnostics ? "失败" : "未运行"}
+                  {ui("Local decode: ", "本地解码：")}{
+                    audioDiagnostics?.ffmpeg_full_decode === "passed"
+                      ? ui("passed", "通过")
+                      : audioDiagnostics ? ui("failed", "失败") : ui("not run", "未运行")
+                  }
                 </span>
                 <button type="button" onClick={copyDiagnostics}>
-                  {diagnosticCopied ? "已复制" : "复制诊断 JSON"}
+                  {diagnosticCopied ? ui("Copied", "已复制") : ui("Copy diagnostic JSON", "复制诊断 JSON")}
                 </button>
               </div>
               <pre><code>{JSON.stringify({
@@ -1269,16 +1465,16 @@ export function TranscriptionWorkbench() {
           <div className="transcript-toolbar">
             <div>
               <p className="overline">TRANSCRIPT</p>
-              <h2>转写稿</h2>
+              <h2>{ui("Transcript", "转写稿")}</h2>
             </div>
-            <div className={`status-badge status-${status}`}><span />{statusCopy[status]}</div>
+            <div className={`status-badge status-${status}`}><span />{STATUS_COPY[status][locale]}</div>
           </div>
 
           {status === "uploading" && (
             <div className="processing-card">
               <div className="wave" aria-hidden="true">{[1,2,3,4,5,6,7,8,9].map((bar) => <i key={bar} />)}</div>
-              <strong>正在听取你的录音…</strong>
-              <span>请保持页面开启</span>
+              <strong>{ui("Listening to your recording…", "正在听取你的录音…")}</strong>
+              <span>{ui("Keep this page open", "请保持页面开启")}</span>
             </div>
           )}
 
@@ -1286,36 +1482,38 @@ export function TranscriptionWorkbench() {
             <>
               <textarea
                 className="transcript-editor"
-                aria-label="转写结果"
+                aria-label={ui("Transcription result", "转写结果")}
                 value={transcript}
                 onChange={(event) => setTranscript(event.target.value)}
               />
               <div className="transcript-actions">
-                <span>{transcript.length.toLocaleString("zh-CN")} 字符</span>
+                <span>
+                  {transcript.length.toLocaleString(locale === "en" ? "en-US" : "zh-CN")} {ui("characters", "字符")}
+                </span>
                 <div>
-                  <button type="button" onClick={copyTranscript}>{copied ? "已复制" : "复制全文"}</button>
-                  <button className="download-button" type="button" onClick={downloadTranscript}>下载 .md</button>
+                  <button type="button" onClick={copyTranscript}>{copied ? ui("Copied", "已复制") : ui("Copy all", "复制全文")}</button>
+                  <button className="download-button" type="button" onClick={downloadTranscript}>{ui("Download .md", "下载 .md")}</button>
                 </div>
               </div>
             </>
           ) : status !== "uploading" ? (
             <div className="empty-transcript">
               <span className="quote-mark" aria-hidden="true">“</span>
-              <p>转写结果会出现在这里。</p>
-              <span>完成前三步，然后开始转写。</span>
+              <p>{ui("Your transcript will appear here.", "转写结果会出现在这里。")}</p>
+              <span>{ui("Complete the three steps, then start transcription.", "完成前三步，然后开始转写。")}</span>
             </div>
           ) : null}
 
           {message && <p className={`status-message ${status === "error" ? "is-error" : ""}`}>{message}</p>}
 
           <footer className="transcript-footer">
-            <span>音频直接发送至 {providerName} API</span>
+            <span>{ui("Audio is sent directly to", "音频直接发送至")} {providerName} API</span>
             <a
               href={isOpenRouter ? "https://openrouter.ai/settings/keys" : "https://platform.openai.com/api-keys"}
               target="_blank"
               rel="noreferrer"
             >
-              管理 {providerName} API Key ↗
+              {ui("Manage", "管理")} {providerName} API Key ↗
             </a>
           </footer>
         </section>
@@ -1323,7 +1521,10 @@ export function TranscriptionWorkbench() {
 
       <footer className="page-footer">
         <span>HENRY.H / WHISPER DESK</span>
-        <p>为个人、私密且直接的转写工作流而设计。</p>
+        <p>{ui(
+          "Designed for a personal, private, and direct transcription workflow.",
+          "为个人、私密且直接的转写工作流而设计。",
+        )}</p>
       </footer>
     </main>
   );
