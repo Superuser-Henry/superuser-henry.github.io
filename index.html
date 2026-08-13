@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Henry Huang | Engineer & Musician</title>
+    <link rel="icon" href="assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" href="assets/icons/favicon-32.png" sizes="32x32" media="(prefers-color-scheme: light)">
+    <link rel="icon" type="image/png" href="assets/icons/favicon-dark-32.png" sizes="32x32" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" sizes="180x180">
+    <link rel="manifest" href="site.webmanifest">
+    <meta name="theme-color" content="#2563eb">
     <style>
         /* --- 基础变量与重置 --- */
         :root {
@@ -283,6 +289,33 @@
         .timeline-content h4 { color: var(--accent); font-family: var(--font-mono); font-size: 0.82rem; font-weight: 500; margin-bottom: 12px; }
         .timeline-content p { max-width: 800px; color: var(--text-muted); }
         .experience-group .timeline-item:last-child { margin-bottom: 0; }
+        .internship-intro {
+            margin-bottom: 20px;
+        }
+        .internship-projects {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .internship-project {
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: var(--bg-alt);
+        }
+        .internship-project h5 {
+            margin-bottom: 6px;
+            font-size: 1.05rem;
+        }
+        .internship-project .mono {
+            display: block;
+            margin-bottom: 11px;
+            font-size: 0.72rem;
+            line-height: 1.5;
+        }
+        .internship-project p {
+            font-size: 0.94rem;
+        }
         .exp-img {
             width: 100%;
             max-width: 300px;
@@ -397,6 +430,8 @@
             .experience-toggle-icon { width: 30px; height: 30px; }
             .experience-timeline { padding: 25px 18px 28px 32px; }
             .timeline-item { padding-left: 22px; }
+            .internship-projects { grid-template-columns: 1fr; }
+            .internship-project { padding: 17px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -489,8 +524,7 @@
                         <span class="experience-group-description">Applied systems work spanning automotive sensing, industrial AI, and machine vision.</span>
                         <span class="experience-project-titles">
                             <span>Automotive Radar</span>
-                            <span>Industrial AI Agent</span>
-                            <span>Machine Vision</span>
+                            <span>Industrial Automation Internship</span>
                         </span>
                     </span>
                     <span class="experience-toggle-icon" aria-hidden="true"></span>
@@ -500,7 +534,7 @@
                         <div class="experience-timeline">
 
                 <article class="timeline-item">
-                    <span class="timeline-date">AUG 2025 — PRESENT</span>
+                    <span class="timeline-date">AUG 2025 — MAY 2026</span>
                     <div class="timeline-content">
                         <h3>Automotive Radar</h3>
                         <h4>77 GHz FMCW RADAR · ADAS · EMBEDDED SYSTEMS</h4>
@@ -509,20 +543,37 @@
                 </article>
 
                 <article class="timeline-item">
-                    <span class="timeline-date">SUMMER 2026 — PRESENT</span>
-                    <div class="timeline-content">
-                        <h3>Industrial AI Agent</h3>
-                        <h4>LLM · MCP · TWINCAT · ENGINEERING AUTOMATION</h4>
-                        <p>I’ve been experimenting with how AI agents can work inside a real industrial engineering environment instead of just answering questions in a chat box. Most of the work revolves around TwinCAT, MCP tools, PLC projects, System Manager, and figuring out how an agent can inspect, understand, and safely work with an automation project.</p>
-                    </div>
-                </article>
-
-                <article class="timeline-item">
                     <span class="timeline-date">SUMMER 2026</span>
                     <div class="timeline-content">
-                        <h3>Machine Vision</h3>
-                        <h4>INDUSTRIAL VISION · MOTION CONTROL · PLC</h4>
-                        <p>This started as a vision task and quickly became a much bigger controls problem. Cameras, contour detection, calibration, conveyors, robot motion, and a rotary cutter all have to agree on where an object is and what should happen next. A lot of the interesting work has been getting those pieces to behave like one system.</p>
+                        <h3>Industrial Automation Internship</h3>
+                        <h4>BECKHOFF AUTOMATION · TWINCAT · INDUSTRIAL CONTROL</h4>
+                        <p class="internship-intro">At Beckhoff Automation, I worked across industrial AI, machine vision, and multi-axis motion control—exploring how software, PLC logic, sensing, and physical machinery come together as complete automation systems.</p>
+
+                        <div class="internship-projects">
+                            <article class="internship-project">
+                                <h5>Industrial AI Agent</h5>
+                                <span class="mono">LLM · MCP · TWINCAT · ENGINEERING AUTOMATION</span>
+                                <p>I experimented with how AI agents can work inside a real industrial engineering environment instead of just answering questions in a chat box. The work revolved around TwinCAT, MCP tools, PLC projects, System Manager, and how an agent can inspect, understand, and safely work with an automation project.</p>
+                            </article>
+
+                            <article class="internship-project">
+                                <h5>Machine Vision</h5>
+                                <span class="mono">INDUSTRIAL VISION · MOTION CONTROL · PLC</span>
+                                <p>This started as a vision task and quickly became a much bigger controls problem. Cameras, contour detection, calibration, conveyors, robot motion, and a rotary cutter all had to agree on where an object was and what should happen next. Much of the work involved getting those pieces to behave like one system.</p>
+                            </article>
+
+                            <article class="internship-project">
+                                <h5>Writing Robot</h5>
+                                <span class="mono">G-CODE · TWINCAT · ADS · MOTION CONTROL</span>
+                                <p>One of my first larger TwinCAT motion projects was a robot that could draw from G-code. I used Python ADS communication to send motion data into the PLC and spent quite a bit of time dealing with buffers, machine states, pen-up/pen-down logic, and all the little things that show up once a motion demo has to run more than once.</p>
+                            </article>
+
+                            <article class="internship-project">
+                                <h5>Delta Robot</h5>
+                                <span class="mono">MULTI-AXIS MOTION · KINEMATICS · PLC</span>
+                                <p>The Delta robot was where TwinCAT motion control started getting properly complicated. Three linked robot axes, an extra rotary axis, virtual Cartesian coordinates, conveyors, and coupled motion made it a good exercise in understanding how a multi-axis machine is actually organized rather than just commanding one motor at a time.</p>
+                            </article>
+                        </div>
                     </div>
                 </article>
                         </div>
@@ -539,9 +590,6 @@
                         <span class="experience-project-titles">
                             <span>ATLAS Test Automation</span>
                             <span>Semiconductor Fabrication</span>
-                            <span>Forward Collision Warning</span>
-                            <span>Writing Robot</span>
-                            <span>Delta Robot</span>
                         </span>
                     </span>
                     <span class="experience-toggle-icon" aria-hidden="true"></span>
@@ -568,32 +616,6 @@
                     </div>
                 </article>
 
-                <article class="timeline-item">
-                    <span class="timeline-date">AUG 2025 — MAY 2026</span>
-                    <div class="timeline-content">
-                        <h3>Senior Design — Forward Collision Warning System</h3>
-                        <h4>MMWAVE RADAR · RASPBERRY PI · REAL-TIME SYSTEMS</h4>
-                        <p>My senior design project is basically a small-scale ADAS testbed. A 77 GHz radar handles vehicle detection while a Raspberry Pi takes care of data processing, visualization, and warning logic. We’re also building the hardware around it, including the radar mount and a servo-based braking demonstration.</p>
-                    </div>
-                </article>
-
-                <article class="timeline-item">
-                    <span class="timeline-date">SUMMER 2026</span>
-                    <div class="timeline-content">
-                        <h3>Writing Robot</h3>
-                        <h4>G-CODE · TWINCAT · ADS · MOTION CONTROL</h4>
-                        <p>One of my first larger TwinCAT motion projects was a robot that could draw from G-code. I used Python ADS communication to send motion data into the PLC and spent quite a bit of time dealing with buffers, machine states, pen-up/pen-down logic, and all the little things that show up once a motion demo has to run more than once.</p>
-                    </div>
-                </article>
-
-                <article class="timeline-item">
-                    <span class="timeline-date">SUMMER 2026</span>
-                    <div class="timeline-content">
-                        <h3>Delta Robot</h3>
-                        <h4>MULTI-AXIS MOTION · KINEMATICS · PLC</h4>
-                        <p>The Delta robot was where TwinCAT motion control started getting properly complicated. Three linked robot axes, an extra rotary axis, virtual Cartesian coordinates, conveyors, and coupled motion made it a good exercise in understanding how a multi-axis machine is actually organized rather than just commanding one motor at a time.</p>
-                    </div>
-                </article>
                         </div>
                     </div>
                 </div>
@@ -604,9 +626,10 @@
                     <span class="experience-group-number mono">03</span>
                     <span>
                         <span class="experience-group-title">Leadership</span>
-                        <span class="experience-group-description">Student leadership and community-building within electrical and computer engineering.</span>
+                        <span class="experience-group-description">Team leadership across engineering communities and live event production.</span>
                         <span class="experience-project-titles">
                             <span>IEEE Student Branch</span>
+                            <span>Production Team</span>
                         </span>
                     </span>
                     <span class="experience-toggle-icon" aria-hidden="true"></span>
@@ -616,11 +639,20 @@
                         <div class="experience-timeline">
 
                 <article class="timeline-item">
-                    <span class="timeline-date">JAN 2024 — PRESENT</span>
+                    <span class="timeline-date">JAN 2024 — MAY 2026</span>
                     <div class="timeline-content">
                         <h3>Secretary — IEEE Student Branch</h3>
                         <h4>STUDENT LEADERSHIP · EVENT PROMOTION · COMMUNITY</h4>
                         <p>As Secretary of the SMU IEEE Student Branch, I help promote and organize Electrical and Computer Engineering events, manage digital content, and build a more visible and engaged student engineering community.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item">
+                    <span class="timeline-date">HIGH SCHOOL</span>
+                    <div class="timeline-content">
+                        <h3>Production Team Leader</h3>
+                        <h4>LIVE AUDIO · STAGE PRODUCTION · TEAM LEADERSHIP</h4>
+                        <p>I led the production team responsible for auditorium and stage operations during school events, coordinating lighting, sound, visual backdrops, stage transitions, and recording. I focused on audio technology while also managing external communication and keeping the technical team aligned throughout each production.</p>
                     </div>
                 </article>
                         </div>
@@ -702,6 +734,17 @@
         <div class="container">
             <h2 class="section-title">Projects & Research</h2>
             <div class="projects-grid">
+
+                <a href="https://superuser-henry.github.io/record-to-text/" target="_blank" rel="noopener noreferrer" class="project-card">
+                    <h3>Record-to-Text</h3>
+                    <p class="mono" style="margin: 10px 0; color: var(--text-muted);">Usage-Based AI Tool</p>
+                    <p>Built an economical meeting transcription and summarization tool for friends and personal use. By calling AI APIs only when needed, it offers a flexible, pay-as-you-go alternative to costly monthly subscriptions from professional meeting platforms.</p>
+                    <div class="project-tags">
+                        <span class="tag">Speech-to-Text</span>
+                        <span class="tag">AI API</span>
+                        <span class="tag">Product Design</span>
+                    </div>
+                </a>
                 
                 <a href="https://ieeexplore.ieee.org/document/10090677" target="_blank" class="project-card">
                     <h3>Protocol Analysis</h3>
