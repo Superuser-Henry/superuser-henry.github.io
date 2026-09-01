@@ -62,6 +62,100 @@
         .nav-links { display: flex; gap: 20px; }
         .nav-links a { font-size: 0.95rem; font-weight: 500; color: var(--text-muted); }
         .nav-links a:hover { color: var(--text-main); }
+        .nav-links .resume-trigger {
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: var(--accent);
+            font: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .nav-links .resume-trigger:hover { color: var(--text-main); }
+        .resume-trigger:focus-visible,
+        .resume-close:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.3);
+            outline-offset: 3px;
+        }
+
+        /* --- Resume PDF Floating Preview --- */
+        body.resume-modal-open { overflow: hidden; }
+        .resume-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .resume-modal.is-open { display: flex; }
+        .resume-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(5px);
+        }
+        .resume-modal-panel {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            width: min(1100px, 100%);
+            height: min(90dvh, 900px);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: #525659;
+            box-shadow: 0 28px 80px rgba(15, 23, 42, 0.45);
+            overflow: hidden;
+            animation: resume-modal-in 0.2s ease-out;
+        }
+        .resume-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            min-height: 62px;
+            padding: 12px 14px 12px 22px;
+            background: #fff;
+            border-bottom: 1px solid #d7dee8;
+        }
+        .resume-modal-title {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .resume-close {
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            flex: 0 0 auto;
+            border: 0;
+            border-radius: 50%;
+            background: var(--bg-alt);
+            color: var(--text-main);
+            font-size: 1.6rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .resume-close:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+        .resume-frame {
+            display: block;
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            border: 0;
+            background: #525659;
+        }
+        @keyframes resume-modal-in {
+            from { opacity: 0; transform: translateY(14px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
         /* --- Hero 区域 --- */
         .hero {
@@ -432,6 +526,9 @@
             .timeline-item { padding-left: 22px; }
             .internship-projects { grid-template-columns: 1fr; }
             .internship-project { padding: 17px; }
+            .resume-modal { padding: 8px; }
+            .resume-modal-panel { width: 100%; height: calc(100dvh - 16px); border-radius: 10px; }
+            .resume-modal-header { min-height: 56px; padding: 9px 10px 9px 16px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -439,8 +536,10 @@
             .experience-group-panel,
             .experience-toggle-icon,
             .experience-toggle-icon::before,
-            .experience-toggle-icon::after {
+            .experience-toggle-icon::after,
+            .resume-modal-panel {
                 transition: none;
+                animation: none;
             }
         }
 
@@ -471,11 +570,27 @@
                     <a href="#experience">Experience</a>
                     <a href="#projects">Projects</a>
                     <a href="#gallery">Gallery</a>
-                    <a href="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/eeebba00baf29557fd1f695e2579f05edb989b4c/Henry%20Huang%20Resume%201.27.2025.pdf" target="_blank" style="color: var(--accent);">Résumé</a>
+                    <button class="resume-trigger" type="button" aria-haspopup="dialog" aria-controls="resume-modal">Résumé</button>
                 </div>
             </nav>
         </div>
     </header>
+
+    <div class="resume-modal" id="resume-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="resume-modal-title">
+        <div class="resume-modal-backdrop" aria-hidden="true"></div>
+        <div class="resume-modal-panel">
+            <div class="resume-modal-header">
+                <h2 class="resume-modal-title" id="resume-modal-title">Shenqiu (Henry) Huang — Résumé</h2>
+                <button class="resume-close" type="button" aria-label="Close résumé preview">&times;</button>
+            </div>
+            <iframe
+                class="resume-frame"
+                title="Shenqiu (Henry) Huang résumé PDF"
+                src="about:blank"
+                data-src="Henry_Huang_Resume.pdf#view=FitH"
+            ></iframe>
+        </div>
+    </div>
 
     <section class="hero" id="home">
         <div class="container">
@@ -511,7 +626,17 @@
                     </p>
                 </div>
                 <div class="about-img">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/Cycling.jpg?raw=true" alt="Henry Cycling">
+                    <img
+                        src="assets/images/gallery/Cycling.jpg"
+                        srcset="assets/images/gallery/Cycling-600.jpg 600w, assets/images/gallery/Cycling.jpg 960w"
+                        sizes="(max-width: 768px) calc(100vw - 40px), 475px"
+                        width="960"
+                        height="720"
+                        loading="lazy"
+                        decoding="async"
+                        fetchpriority="low"
+                        alt="Henry Cycling"
+                    >
                 </div>
             </div>
         </div>
@@ -802,27 +927,27 @@
             <p style="margin-bottom: 20px; color: var(--text-muted);">Snapshots of my life: fixing things, playing music, and exploring.</p>
             <div class="gallery-grid">
                 <div class="gallery-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/ECU.jpg?raw=true" loading="lazy" alt="ECU Repair">
+                    <img src="assets/images/gallery/ECU.jpg" srcset="assets/images/gallery/ECU-600.jpg 600w, assets/images/gallery/ECU.jpg 960w" sizes="(max-width: 560px) calc(100vw - 40px), (max-width: 900px) calc(50vw - 28px), 320px" width="960" height="720" loading="lazy" decoding="async" alt="ECU Repair">
                     <div class="gallery-caption">ECU Repair</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/saxophone.jpg?raw=true" loading="lazy" alt="Saxophone">
+                    <img src="assets/images/gallery/saxophone.jpg" srcset="assets/images/gallery/saxophone-600.jpg 600w, assets/images/gallery/saxophone.jpg 1080w" sizes="(max-width: 560px) calc(100vw - 40px), (max-width: 900px) calc(50vw - 28px), 320px" width="1080" height="720" loading="lazy" decoding="async" alt="Saxophone">
                     <div class="gallery-caption">Saxophone Performance</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/FixingCar.jpg?raw=true" loading="lazy" alt="Working on Cars">
+                    <img src="assets/images/gallery/FixingCar.jpg" srcset="assets/images/gallery/FixingCar-600.jpg 600w, assets/images/gallery/FixingCar.jpg 1179w" sizes="(max-width: 560px) calc(100vw - 40px), (max-width: 900px) calc(50vw - 28px), 320px" width="1179" height="884" loading="lazy" decoding="async" alt="Working on Cars">
                     <div class="gallery-caption">Mechanic Mode</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/PointingYou.jpg?raw=true" loading="lazy" alt="Car">
+                    <img src="assets/images/gallery/PointingYou.jpg" srcset="assets/images/gallery/PointingYou-600.jpg 600w, assets/images/gallery/PointingYou.jpg 1200w" sizes="(max-width: 560px) calc(100vw - 40px), (max-width: 900px) calc(50vw - 28px), 320px" width="1200" height="800" loading="lazy" decoding="async" alt="Car">
                     <div class="gallery-caption">Automotive Passion</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/BicycleandLake.jpg?raw=true" loading="lazy" alt="Bike and Lake">
+                    <img src="assets/images/gallery/BicycleandLake.jpg" srcset="assets/images/gallery/BicycleandLake-600.jpg 600w, assets/images/gallery/BicycleandLake.jpg 1200w" sizes="(max-width: 560px) calc(100vw - 40px), (max-width: 900px) calc(50vw - 28px), 320px" width="1200" height="800" loading="lazy" decoding="async" alt="Bike and Lake">
                     <div class="gallery-caption">White Rock Lake</div>
                 </div>
                 <div class="gallery-item">
-                    <img src="https://github.com/Superuser-Henry/superuser-henry.github.io/blob/main/Gallery/Cycling.jpg?raw=true" loading="lazy" alt="Racing">
+                    <img src="assets/images/gallery/Cycling.jpg" srcset="assets/images/gallery/Cycling-600.jpg 600w, assets/images/gallery/Cycling.jpg 960w" sizes="(max-width: 560px) calc(100vw - 40px), (max-width: 900px) calc(50vw - 28px), 320px" width="960" height="720" loading="lazy" decoding="async" alt="Racing">
                     <div class="gallery-caption">Cycling Racing</div>
                 </div>
             </div>
@@ -850,17 +975,22 @@
         document.addEventListener('DOMContentLoaded', function() {
             const text = "Shenqiu (Henry) Huang";
             const element = document.getElementById('typewriter');
-            element.innerHTML = ''; // 清空原始内容
+            const typewriterText = document.createTextNode('');
+            element.replaceChildren(typewriterText);
             let i = 0;
             
             function typeWriter() {
                 if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
+                    typewriterText.appendData(text.charAt(i));
                     i++;
                     setTimeout(typeWriter, 100); // 打字速度
                 } else {
                     // 打字结束后添加闪烁光标
-                    element.innerHTML += '<span class="cursor">&nbsp;</span>';
+                    const cursor = document.createElement('span');
+                    cursor.className = 'cursor';
+                    cursor.setAttribute('aria-hidden', 'true');
+                    cursor.innerHTML = '&nbsp;';
+                    element.appendChild(cursor);
                 }
             }
             
@@ -896,6 +1026,41 @@
                     }
                 });
             });
+
+            const resumeTrigger = document.querySelector('.resume-trigger');
+            const resumeModal = document.getElementById('resume-modal');
+            const resumeBackdrop = resumeModal.querySelector('.resume-modal-backdrop');
+            const resumeClose = resumeModal.querySelector('.resume-close');
+            const resumeFrame = resumeModal.querySelector('.resume-frame');
+
+            function openResumeModal() {
+                if (resumeFrame.src === 'about:blank') {
+                    resumeFrame.src = resumeFrame.dataset.src;
+                }
+
+                resumeModal.classList.add('is-open');
+                resumeModal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('resume-modal-open');
+                resumeClose.focus();
+            }
+
+            function closeResumeModal() {
+                resumeModal.classList.remove('is-open');
+                resumeModal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('resume-modal-open');
+                resumeTrigger.focus();
+            }
+
+            resumeTrigger.addEventListener('click', openResumeModal);
+            resumeClose.addEventListener('click', closeResumeModal);
+            resumeBackdrop.addEventListener('click', closeResumeModal);
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && resumeModal.classList.contains('is-open')) {
+                    closeResumeModal();
+                }
+            });
+
         });
     </script>
 </body>
